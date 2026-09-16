@@ -622,9 +622,11 @@ function fieldTooltip(path, desc) {
 
 function switchHtml(b) {
   const meta = TOGGLE_META[b.path];
-  const label = meta?.label
-    ? toggleLabel(b.path, meta.label)
-    : fallbackLabel(b.path);
+  // A boolean the hand-maintained schema above does not list yet still goes
+  // through the dictionary first, so a newer upstream setting can be given a
+  // translation without touching the schema; the derived label is only the
+  // last resort, exactly as it was before.
+  const label = toggleLabel(b.path, meta?.label || fallbackLabel(b.path));
   const desc = toggleDesc(b.path, meta?.desc);
   return `
         <label class="switch" title="${U.escapeAttr(fieldTooltip(b.path, desc))}">
@@ -710,7 +712,7 @@ function textFieldHtml(path, def) {
             <span class="hint-text">${U.escapeHtml(fieldLabel(path, def.label))}</span>
             <input class="input" type="${type}" data-path="${U.escapeAttr(path)}"
                 value="${U.escapeAttr(String(value))}"
-                placeholder="${U.escapeAttr(locked ? t("config.hiddenUntilRevealed") : def.placeholder || "")}"
+                placeholder="${U.escapeAttr(locked ? t("config.hiddenUntilRevealed") : settingText("field", path, "placeholder", def.placeholder || ""))}"
                 ${locked ? "disabled" : ""}
                 ${def.min != null ? `min="${def.min}"` : ""}
                 ${def.step != null ? `step="${def.step}"` : ""}>
@@ -763,7 +765,7 @@ function tagsFieldHtml(path, def) {
                   : ""}
             </div>
             <div class="tag-add">
-                <input class="input tag-add-input" type="text" placeholder="${U.escapeAttr(def.placeholder || t("config.tagsPlaceholder"))}" ${dlId ? `list="${dlId}"` : ""}>
+                <input class="input tag-add-input" type="text" placeholder="${U.escapeAttr(settingText("field", path, "placeholder", def.placeholder) || t("config.tagsPlaceholder"))}" ${dlId ? `list="${dlId}"` : ""}>
                 <button type="button" class="btn btn-small tag-add-btn">${U.escapeHtml(t("common.add"))}</button>
             </div>
             ${dlId ? `<datalist id="${dlId}">${def.suggestions.map((s) => `<option value="${U.escapeAttr(s)}">`).join("")}</datalist>` : ""}
