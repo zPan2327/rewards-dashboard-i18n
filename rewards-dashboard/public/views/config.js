@@ -774,7 +774,7 @@ function tagsFieldHtml(path, def) {
 function delaySubFieldHtml(groupLabel, subLabel, sub) {
   const value = getDeep(loaded, sub.path);
   return `
-        <label class="field field-item" title="${U.escapeAttr(fieldTooltip(sub.path, sub.desc))}">
+        <label class="field field-item" title="${U.escapeAttr(fieldTooltip(sub.path, settingText("field", sub.path, "desc", sub.desc)))}">
             <span class="hint-text">${U.escapeHtml(groupLabel)} \u2014 ${U.escapeHtml(subLabel)}</span>
             <input class="input" type="text" data-path="${U.escapeAttr(sub.path)}"
                 value="${U.escapeAttr(value ?? "")}" placeholder="${U.escapeAttr(sub.placeholder || "")}">

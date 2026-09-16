@@ -411,6 +411,8 @@ export default {
   "config.toggle.autoClaimPunchcardRewards.desc": "Auto-claim completed punchcard rewards",
   "config.toggle.skipNonPointTasks.label": "Skip non-point tasks",
   "config.toggle.skipNonPointTasks.desc": "Skip tasks that award no points",
+  // Not in TOGGLE_GROUPS (newer config.json field); mirrors the derived label.
+  "config.toggle.contintueOnBotWarning.label": "Contintue on bot warning",
   "config.toggle.searchOnBingLocalQueries.label": "Local queries for ExploreOnBing",
   "config.toggle.searchOnBingLocalQueries.desc": "Use the local query list for ExploreOnBing",
   "config.toggle.workers.doDailySet.label": "Daily set",
@@ -473,8 +475,13 @@ export default {
   "config.toggle.webhook.telegram.enabled.desc": "Enable Telegram webhook",
   "config.toggle.webhook.ntfy.enabled.label": "ntfy webhook",
   "config.toggle.webhook.ntfy.enabled.desc": "Enable ntfy notifications",
+  "config.toggle.webhook.pushplus.enabled.label": "Enabled",
+  "config.toggle.webhook.serverchan.enabled.label": "Enabled",
+  "config.toggle.webhook.clawbot.enabled.label": "Enabled",
   "config.toggle.webhook.webhookLogFilter.enabled.label": "Webhook log filter",
   "config.toggle.webhook.webhookLogFilter.enabled.desc": "Enable webhook log filtering",
+  "config.toggle.humanize.enabled.label": "Enabled",
+  "config.toggle.humanize.skipWhenCompletedToday.label": "Skip when completed today",
 
   // ── Config: detail field labels and descriptions ────────────────────────
   "config.field.sessionPath.label": "Session path",

@@ -413,6 +413,7 @@ export default {
   "config.toggle.autoClaimPunchcardRewards.desc": "自动领取已完成的打卡任务奖励",
   "config.toggle.skipNonPointTasks.label": "跳过无积分任务",
   "config.toggle.skipNonPointTasks.desc": "跳过不发放积分的任务",
+  "config.toggle.contintueOnBotWarning.label": "机器人警告时继续",
   "config.toggle.searchOnBingLocalQueries.label": "ExploreOnBing 使用本地查询词",
   "config.toggle.searchOnBingLocalQueries.desc": "为 ExploreOnBing 使用本地查询词列表",
   "config.toggle.workers.doDailySet.label": "每日任务",
@@ -475,8 +476,13 @@ export default {
   "config.toggle.webhook.telegram.enabled.desc": "启用 Telegram Webhook",
   "config.toggle.webhook.ntfy.enabled.label": "ntfy Webhook",
   "config.toggle.webhook.ntfy.enabled.desc": "启用 ntfy 通知",
+  "config.toggle.webhook.pushplus.enabled.label": "PushPlus 推送",
+  "config.toggle.webhook.serverchan.enabled.label": "Server 酱推送",
+  "config.toggle.webhook.clawbot.enabled.label": "ClawBot 推送",
   "config.toggle.webhook.webhookLogFilter.enabled.label": "Webhook 日志过滤器",
   "config.toggle.webhook.webhookLogFilter.enabled.desc": "启用 Webhook 日志过滤",
+  "config.toggle.humanize.enabled.label": "拟人化行为",
+  "config.toggle.humanize.skipWhenCompletedToday.label": "今日已完成则跳过",
 
   // ── 配置：字段名称与说明 ────────────────────────────────────────────────
   "config.field.sessionPath.label": "会话目录",

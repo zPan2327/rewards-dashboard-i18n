@@ -1,6 +1,6 @@
 import * as U from "../util.js";
 import { cached } from "../api.js";
-import { t, tp } from "../i18n/index.js";
+import { hasKey, t, tp } from "../i18n/index.js";
 
 let accountsPayload = null;
 let rootEl = null;
@@ -197,7 +197,7 @@ function kv(items) {
   return `<dl class="kv">${items
     .map(
       ([k, v]) =>
-        `<div><dt>${U.escapeHtml(k)}</dt><dd>${U.escapeHtml(String(v))}</dd></div>`,
+        `<div><dt>${U.escapeHtml(hasKey(k) ? t(k) : k)}</dt><dd>${U.escapeHtml(String(v))}</dd></div>`,
     )
     .join("")}</dl>`;
 }
