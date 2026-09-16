@@ -31,6 +31,14 @@
   --mono:
     ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
     monospace;
+  /* UI stack. The CJK families are listed after the Latin ones, so they are
+     only reached for glyphs the Latin families do not cover: English renders
+     exactly as before, and Chinese gets proper CJK typography instead of
+     whatever the browser would otherwise substitute. */
+  --font:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC",
+    "Source Han Sans SC", sans-serif;
 
   /* Derived operational colours */
   --positive-bg: color-mix(in srgb, var(--positive) 16%, var(--surface));
@@ -66,14 +74,7 @@ body {
 body {
   background: var(--canvas);
   color: var(--text);
-  font:
-    15px/1.5 -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
-    Helvetica,
-    Arial,
-    sans-serif;
+  font: 15px/1.5 var(--font);
 }
 
 .visually-hidden {

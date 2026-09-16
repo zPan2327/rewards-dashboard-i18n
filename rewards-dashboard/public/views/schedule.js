@@ -1,16 +1,18 @@
 import * as U from "../util.js";
+import { t } from "../i18n/index.js";
+import { localizeCronResult } from "../i18n/cronText.js";
 
 const PRESETS = [
-  ["Daily at 09:00", "0 9 * * *"],
-  ["Twice daily (09:00, 21:00)", "0 9,21 * * *"],
-  ["Every 6 hours", "0 */6 * * *"],
-  ["Every 12 hours", "0 */12 * * *"],
-  ["Weekdays at 08:00", "0 8 * * 1-5"],
+  ["schedule.preset.daily9", "0 9 * * *"],
+  ["schedule.preset.twiceDaily", "0 9,21 * * *"],
+  ["schedule.preset.every6h", "0 */6 * * *"],
+  ["schedule.preset.every12h", "0 */12 * * *"],
+  ["schedule.preset.weekdays8", "0 8 * * 1-5"],
 ];
 
 const TARGET_LABEL = {
-  local: "This dashboard",
-  remote: "Bot container (Docker cron)",
+  local: "schedule.target.local",
+  remote: "schedule.target.remote",
 };
 
 let rootEl = null;
@@ -70,8 +72,8 @@ function paintTargetToggle() {
   if (note) {
     note.textContent =
       target === "remote"
-        ? "Cron runs inside the bot container itself — it fires even if this dashboard is offline, and simply doesn't fire while the container is stopped (so there's no missed-run policy to configure)."
-        : "This scheduler runs inside the dashboard's own process — it needs the dashboard container to be up to fire, but can recover a missed run according to the policy below.";
+        ? t("schedule.targetNote.remote")
+        : t("schedule.targetNote.local");
   }
 }
 
@@ -105,8 +107,8 @@ function paint() {
   U.$("#schedNext", rootEl).textContent = current.enabled
     ? current.nextRunAt
       ? `${U.fmtDateTime(current.nextRunAt)} (${U.fmtRelative(current.nextRunAt)})`
-      : "Not scheduled"
-    : "Disabled";
+      : t("schedule.notScheduled")
+    : t("common.disabled");
 
   if (target === "local") {
     U.$("#schedLast", rootEl).textContent = current.lastTriggeredAt
@@ -115,14 +117,13 @@ function paint() {
     U.$("#schedResult", rootEl).textContent = current.lastResult || "\u2013";
   } else {
     U.$("#schedLast", rootEl).textContent = "\u2013";
-    U.$("#schedResult", rootEl).textContent =
-      "Not tracked here \u2014 see the Runs tab.";
+    U.$("#schedResult", rootEl).textContent = t("schedule.notTracked");
   }
 
   const excluded = current.excludedAccountIndexes || [];
   U.$("#schedExcluded", rootEl).textContent = excluded.length
     ? excluded.map((index) => `ACCOUNT_${index}`).join(", ")
-    : "None";
+    : t("common.none");
 
   const tzLabel = U.$("#schedTz", rootEl);
   if (target === "local") {
@@ -146,8 +147,9 @@ function renderAccountExclusions() {
   const host = U.$("#schedAccounts", rootEl);
   if (!host) return;
   if (!accountOptions.length) {
-    host.innerHTML =
-      '<p class="empty-note">No configured accounts are available.</p>';
+    host.innerHTML = `<p class="empty-note">${U.escapeHtml(
+      t("schedule.noAccounts"),
+    )}</p>`;
     return;
   }
   const excluded = new Set(current?.excludedAccountIndexes || []);
@@ -155,7 +157,12 @@ function renderAccountExclusions() {
     .map(
       (account) => `<label class="check check--row">
                 <input type="checkbox" data-exclude-account="${account.index}" ${excluded.has(account.index) ? "checked" : ""}>
-                <span>Exclude <strong>ACCOUNT_${account.index}</strong> \u2014 ${U.escapeHtml(account.email)}</span>
+                <span>${U.escapeHtml(
+                  t("schedule.excludeAccount", {
+                    index: account.index,
+                    email: account.email,
+                  }),
+                )}</span>
             </label>`,
     )
     .join("");
@@ -167,7 +174,7 @@ function renderAccountExclusions() {
 async function describe(expr) {
   const out = U.$("#schedDesc", rootEl);
   if (!expr) {
-    out.textContent = "Enter a 5-field cron expression.";
+    out.textContent = t("schedule.enterCron");
     out.className = "sched-desc";
     return;
   }
@@ -175,7 +182,7 @@ async function describe(expr) {
     const res = await (
       await fetch(`/api/cron?expr=${encodeURIComponent(expr)}`)
     ).json();
-    out.textContent = res.valid ? res.description : res.error;
+    out.textContent = localizeCronResult(res);
     out.className = `sched-desc ${res.valid ? "sched-desc--ok" : "sched-desc--bad"}`;
     U.$("#schedSave", rootEl).disabled = !res.valid || !dirty;
   } catch {
@@ -185,7 +192,7 @@ async function describe(expr) {
 
 export default {
   id: "schedule",
-  label: "Schedule",
+  labelKey: "tab.schedule",
   interval: 30000,
 
   mount(root, ctx) {
@@ -193,50 +200,50 @@ export default {
     root.innerHTML = `
             <section class="panel" aria-labelledby="sched-heading">
                 <div class="panel-head">
-                    <h2 id="sched-heading">Automatic runs</h2>
-                    <span class="panel-sub">Two schedulers are available &mdash; pick the one that fits your setup</span>
+                    <h2 id="sched-heading" data-i18n="schedule.title">Automatic runs</h2>
+                    <span class="panel-sub" data-i18n="schedule.subtitle">Two schedulers are available &mdash; pick the one that fits your setup</span>
                 </div>
 
-                <div class="seg" id="schedTargetToggle" role="radiogroup" aria-label="Scheduler location">
-                    <button type="button" class="seg-btn seg-btn--active" id="schedTargetLocal" data-target="local" aria-pressed="true">${U.escapeHtml(TARGET_LABEL.local)}</button>
-                    <button type="button" class="seg-btn" id="schedTargetRemote" data-target="remote" aria-pressed="false" hidden>${U.escapeHtml(TARGET_LABEL.remote)}</button>
+                <div class="seg" id="schedTargetToggle" role="radiogroup" aria-label="Scheduler location" data-i18n-aria-label="schedule.targetLabel">
+                    <button type="button" class="seg-btn seg-btn--active" id="schedTargetLocal" data-target="local" aria-pressed="true" data-i18n="schedule.target.local">${U.escapeHtml(t(TARGET_LABEL.local))}</button>
+                    <button type="button" class="seg-btn" id="schedTargetRemote" data-target="remote" aria-pressed="false" hidden data-i18n="schedule.target.remote">${U.escapeHtml(t(TARGET_LABEL.remote))}</button>
                 </div>
                 <p class="hint" id="schedTargetNote"></p>
-                <p class="empty-note chart-empty" id="schedDualWarning" hidden>
-                    &#9888; Both schedulers are currently enabled &mdash; runs may double-fire. Disable one of them below.
+                <p class="empty-note chart-empty" id="schedDualWarning" hidden data-i18n="schedule.dualWarning">
+                    Both schedulers are currently enabled &mdash; runs may double-fire. Disable one of them below.
                 </p>
 
                 <div class="form" id="schedFormBody">
                     <label class="check check--row">
                         <input type="checkbox" id="schedEnabled">
-                        <span><strong>Enabled</strong> &mdash; fire runs on the schedule below</span>
+                        <span><strong data-i18n="schedule.enabledLabel">Enabled</strong> &mdash; <span data-i18n="schedule.enabledHint">fire runs on the schedule below</span></span>
                     </label>
 
                     <div id="schedMisfireGroup">
                         <label class="field">
-                            <span>If a run was missed while the dashboard was offline</span>
+                            <span data-i18n="schedule.misfireLabel">If a run was missed while the dashboard was offline</span>
                             <select id="schedMisfire" class="input">
-                                <option value="skip">Skip it</option>
-                                <option value="run-on-startup">Run once after startup</option>
-                                <option value="grace-period">Run only within a grace period</option>
+                                <option value="skip" data-i18n="schedule.misfire.skip">Skip it</option>
+                                <option value="run-on-startup" data-i18n="schedule.misfire.runOnStartup">Run once after startup</option>
+                                <option value="grace-period" data-i18n="schedule.misfire.gracePeriod">Run only within a grace period</option>
                             </select>
                         </label>
 
                         <label class="field" id="schedGraceField" hidden>
-                            <span>Grace period in minutes</span>
+                            <span data-i18n="schedule.graceLabel">Grace period in minutes</span>
                             <input id="schedGrace" class="input" type="number" min="1" max="1440" value="60">
                         </label>
                     </div>
 
                     <fieldset class="field">
-                        <legend>Excluded accounts</legend>
+                        <legend data-i18n="schedule.excludedAccounts">Excluded accounts</legend>
                         <div id="schedAccounts" class="schedule-account-list">
-                            <p class="empty-note">Loading configured accounts&hellip;</p>
+                            <p class="empty-note" data-i18n="schedule.loadingAccounts">Loading configured accounts…</p>
                         </div>
                     </fieldset>
 
                     <label class="field">
-                        <span>Cron expression</span>
+                        <span data-i18n="schedule.cronLabel">Cron expression</span>
                         <input id="schedCron" class="input input--mono" type="text" placeholder="0 9 * * *"
                                spellcheck="false" autocomplete="off" aria-describedby="schedDesc">
                     </label>
@@ -245,21 +252,21 @@ export default {
                     <div class="preset-row" id="schedPresets">
                         ${PRESETS.map(
       ([label, expr]) =>
-        `<button type="button" class="chip-btn" data-cron="${U.escapeAttr(expr)}" title="${U.escapeAttr(expr)}">${U.escapeHtml(label)}</button>`,
+        `<button type="button" class="chip-btn" data-cron="${U.escapeAttr(expr)}" title="${U.escapeAttr(expr)}">${U.escapeHtml(t(label))}</button>`,
     ).join("")}
                     </div>
 
                     <label class="check check--row">
                         <input type="checkbox" id="schedSkip">
-                        <span><strong>Skip if already running</strong> &mdash; don&rsquo;t start a second run on top of one in progress</span>
+                        <span><strong data-i18n="schedule.skipIfRunning">Skip if already running</strong> &mdash; <span data-i18n="schedule.skipIfRunningHint">don&rsquo;t start a second run on top of one in progress</span></span>
                     </label>
 
                     <div class="form-actions">
-                        <button type="button" id="schedSave" class="btn btn-primary" disabled>Save schedule</button>
-                        <button type="button" id="schedReset" class="btn">Discard changes</button>
+                        <button type="button" id="schedSave" class="btn btn-primary" disabled data-i18n="schedule.save">Save schedule</button>
+                        <button type="button" id="schedReset" class="btn" data-i18n="schedule.discard">Discard changes</button>
                     </div>
                 </div>
-                <p class="empty-note" id="schedUnavailable" hidden>
+                <p class="empty-note" id="schedUnavailable" hidden data-i18n="schedule.unavailable">
                     Could not read this scheduler&rsquo;s current state. It will refresh automatically &mdash; if this
                     persists, check that the bot's Control API is reachable and API_ALLOW_SCHEDULE_WRITE is set if you
                     want to edit it from here.
@@ -267,15 +274,15 @@ export default {
             </section>
 
             <section class="panel" aria-labelledby="sched-state-heading">
-                <div class="panel-head"><h2 id="sched-state-heading">Current state</h2></div>
+                <div class="panel-head"><h2 id="sched-state-heading" data-i18n="schedule.stateHeading">Current state</h2></div>
                 <dl class="kv">
-                    <div><dt>Next run</dt><dd id="schedNext">\u2013</dd></div>
-                    <div><dt>Last triggered</dt><dd id="schedLast">\u2013</dd></div>
-                    <div><dt>Last result</dt><dd id="schedResult">\u2013</dd></div>
-                    <div><dt>Excluded accounts</dt><dd id="schedExcluded">\u2013</dd></div>
-                    <div><dt>Timezone</dt><dd id="schedTz">\u2013</dd></div>
+                    <div><dt data-i18n="schedule.nextRun">Next run</dt><dd id="schedNext">\u2013</dd></div>
+                    <div><dt data-i18n="schedule.lastTriggered">Last triggered</dt><dd id="schedLast">\u2013</dd></div>
+                    <div><dt data-i18n="schedule.lastResult">Last result</dt><dd id="schedResult">\u2013</dd></div>
+                    <div><dt data-i18n="schedule.excludedAccounts">Excluded accounts</dt><dd id="schedExcluded">\u2013</dd></div>
+                    <div><dt data-i18n="schedule.timezone">Timezone</dt><dd id="schedTz">\u2013</dd></div>
                 </dl>
-                <p class="hint">Times are evaluated in the scheduler&rsquo;s own timezone (dashboard: its <code>TZ</code>;
+                <p class="hint" data-i18n-html="schedule.footnote">Times are evaluated in the scheduler&rsquo;s own timezone (dashboard: its <code>TZ</code>;
                 bot container: its own <code>TZ</code>). If a scheduler's host was offline, the local scheduler applies
                 its missed-run policy at startup &mdash; the container scheduler simply didn&rsquo;t fire.</p>
             </section>`;
@@ -312,7 +319,7 @@ export default {
       if (next === target) return;
       if (
         dirty &&
-        !window.confirm("Discard unsaved changes and switch scheduler?")
+        !window.confirm(t("schedule.confirmDiscard"))
       ) {
         return;
       }
@@ -329,7 +336,7 @@ export default {
         accountOptions.length &&
         patch.excludedAccountIndexes.length >= accountOptions.length
       ) {
-        U.toast("A scheduled run must include at least one account.", "error");
+        U.toast(t("schedule.toast.needsAccount"), "error");
         return;
       }
       btn.disabled = true;
@@ -337,9 +344,10 @@ export default {
         data = await ctx.api.saveSchedule(patch, target);
         paint();
         U.toast(
-          patch.enabled
-            ? `Schedule armed (${TARGET_LABEL[target]}).`
-            : `Schedule disabled (${TARGET_LABEL[target]}).`,
+          t(
+            patch.enabled ? "schedule.toast.armed" : "schedule.toast.disabled",
+            { target: t(TARGET_LABEL[target]) },
+          ),
           "success",
         );
         ctx.invalidate();

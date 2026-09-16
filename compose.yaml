@@ -1,41 +1,65 @@
+# Rewards Dashboard（简体中文 / i18n 版）
+#
+# 用法：
+#   1. 在本文件旁创建 .env，写入 API_TOKEN=<与机器人 API_TOKEN 相同的随机串>
+#   2. docker compose up -d --build
+#   3. 浏览器打开 http://<宿主机IP>:8890
+#
+# 默认从本地源码构建（build:），因此 `git clone` 之后即可直接运行。
+# 如果你想直接用已发布好的镜像，注释掉 build: 并启用 image: 即可。
 services:
   rewards-dashboard:
-    image: ghcr.io/mgrimace/rewards-dashboard:latest
-    #build:
-    #  context: ./rewards-dashboard
+    # 使用本仓库发布到 GHCR 的镜像（需要先在 GitHub 上把该 package 设为 public）
+    # image: ghcr.io/zpan2327/rewards-dashboard-i18n:latest
+    build:
+      context: ./rewards-dashboard
     container_name: rewards-dashboard
     restart: unless-stopped
     ports:
       - "8890:8890"
     environment:
-      # URL of the bot's Control API (scripts/api/server.js).
-      #  - If the Control API runs as a container on a shared Docker
-      #    network, use its service/container name, e.g.
-      #    http://microsoft-rewards-script:3010
-      #  - If it runs on the Docker host, use
-      #    http://host.docker.internal:3010 and uncomment extra_hosts below.
+      # 机器人 Control API 的地址（scripts/api/server.js）。
+      #  - 如果 Control API 也跑在同一个 Docker 网络里，用它的服务名/容器名，
+      #    例如 http://microsoft-rewards-script:3010
+      #  - 如果它跑在宿主机上，用 http://host.docker.internal:3010，
+      #    并取消下面 extra_hosts 的注释。
       CONTROL_API_URL: "http://microsoft-rewards-script:3010"
 
-      # Shared secret — must match the Control API's API_TOKEN. Sourced
-      # from your shell / a .env file beside this compose.yaml. Leave it
-      # unset only if the API runs without a token.
+      # 共享密钥 —— 必须与 Control API 的 API_TOKEN 一致。
+      # 从本文件旁的 .env 读取。只有当 API 没有设置令牌时才可以留空。
       CONTROL_API_TOKEN: "${API_TOKEN}"
 
-      # Your timezone, so the daily point buckets line up (e.g.
-      # Europe/Amsterdam). Defaults to UTC.
-      TZ: "America/Toronto"
+      # 时区，用于把每天的积分分桶对齐。例如 Asia/Shanghai。默认 UTC。
+      TZ: "Asia/Shanghai"
 
-      # Optional.
+      # 以下均为可选。
       # DASHBOARD_TITLE: 'Microsoft Rewards'
-      # POLL_MS: '5000'      # status poll; logs are streamed
-      # LOG_REPLAY: '300'    # log lines replayed when the stream connects
+      # POLL_MS: '5000'      # 状态轮询间隔（日志是流式推送的）
+      # LOG_REPLAY: '300'    # 建立日志流时回放的行数
 
-    # The dashboard stores point history, runs, activity and its own
-    # schedule, all in ./data/dashboard.sqlite. The bot's Control API is
-    # otherwise stateless; the one exception is config/schedule.json on the
-    # bot side, written only if you enable API_ALLOW_SCHEDULE_WRITE there and
-    # use the "Bot container" scheduler from this dashboard's Schedule tab.
+    # 仪表盘的积分历史、运行记录、活动记录和它自己的定时任务都保存在
+    # ./data/dashboard.sqlite。机器人的 Control API 本身是无状态的；唯一的
+    # 例外是机器人侧的 config/schedule.json —— 只有你在机器人侧启用了
+    # API_ALLOW_SCHEDULE_WRITE，并使用本仪表盘「定时任务」页里的
+    # 「机器人容器」调度器时，才会写入它。
     volumes:
       - ./data:/data
+
+    # 降低容器权限
     security_opt:
       - no-new-privileges:true
+
+    # 如果 Control API 跑在 Docker 宿主机上，取消下面的注释
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"
+
+    # 与 microsoft-rewards-script 加入同一个 Docker 虚拟网络。
+    # 如果你把本服务直接复制进机器人的 compose.yaml，可以删掉这两段。
+    networks:
+      - rewards
+
+# 复用已存在的 Docker 网络（两个独立的 Compose 项目也能通过它互相通信）
+networks:
+  rewards:
+    driver: bridge
+    external: true

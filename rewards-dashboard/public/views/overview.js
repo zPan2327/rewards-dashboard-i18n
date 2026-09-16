@@ -1,4 +1,6 @@
 import * as U from "../util.js";
+import { t, tp } from "../i18n/index.js";
+import { localizeCronDescription } from "../i18n/cronText.js";
 import { cached } from "../api.js";
 // Import BOTH chart builders
 import { buildAccumBarHtml, buildHeatmapHtml, lineChart } from "../charts.js";
@@ -42,7 +44,9 @@ function activeSchedule(status) {
 
   if (localOn && remoteOn) {
     return {
-      description: `${local.description} + ${remote.description}`,
+      description: `${localizeCronDescription(
+        local.description,
+      )} + ${localizeCronDescription(remote.description)}`,
       enabled: true,
       both: true,
       timezone: status?.timezone || "UTC",
@@ -50,20 +54,23 @@ function activeSchedule(status) {
   }
   if (remoteOn) {
     return {
-      description: remote.description,
+      description: localizeCronDescription(remote.description),
       enabled: true,
       timezone: remote.timezone || status?.timezone || "UTC",
     };
   }
   if (localOn) {
     return {
-      description: local.description,
+      description: localizeCronDescription(local.description),
       enabled: true,
       timezone: status?.timezone || "UTC",
     };
   }
   return {
-    description: local?.description || remote?.description || "Not scheduled",
+    description:
+      localizeCronDescription(local?.description) ||
+      localizeCronDescription(remote?.description) ||
+      t("overview.schedule.notScheduled"),
     enabled: false,
     timezone: status?.timezone || "UTC",
   };
@@ -83,9 +90,11 @@ function pendingDelayLabel(pendingDelay) {
   const remaining = Math.round(pendingDelay.seconds - elapsedSec);
   if (remaining <= 0) return null;
   const who = pendingDelay.nextEmail
-    ? ` (${pendingDelay.nextEmail.split("@")[0]})`
+    ? t("overview.run.pendingDelayAccount", {
+        email: pendingDelay.nextEmail.split("@")[0],
+      })
     : "";
-  return `next account in ~${remaining}s${who}`;
+  return t("overview.run.pendingDelay", { seconds: remaining }) + who;
 }
 
 function controlState() {
@@ -103,7 +112,10 @@ async function runAccount(account) {
   try {
     await context.api.control("start", { accountIndex: account.index });
     context.toast(
-      `Started ACCOUNT_${account.index} only (${account.email}).`,
+      t("overview.toast.runOnlyStarted", {
+        index: account.index,
+        email: account.email,
+      }),
       "success",
     );
     context.invalidate();
@@ -127,22 +139,41 @@ function renderStats(root, status) {
   const sched = activeSchedule(status);
 
   U.$("#statGrid", root).innerHTML = [
-    statCard("statAccounts", U.fmtNumber(accounts.length), "profiles", "Accounts tracked"),
-    statCard("statCombined", U.fmtNumber(combined), "points", "Combined balance"),
-    statCard("statLastGained", lastRun ? U.fmtSigned(lastRun.totalGained) : "\u2013", "points", "Points earned last run"),
+    statCard(
+      "statAccounts",
+      U.fmtNumber(accounts.length),
+      t("overview.stat.accountsUnit"),
+      t("overview.stat.accountsLabel"),
+    ),
+    statCard(
+      "statCombined",
+      U.fmtNumber(combined),
+      t("overview.stat.combinedUnit"),
+      t("overview.stat.combinedLabel"),
+    ),
+    statCard(
+      "statLastGained",
+      lastRun ? U.fmtSigned(lastRun.totalGained) : "\u2013",
+      t("overview.stat.lastGainedUnit"),
+      t("overview.stat.lastGainedLabel"),
+    ),
     statCard(
       "statLastRun",
-      anyRunning ? "Running now" : lastRun ? U.fmtRelative(lastRun.endTs || lastRun.startTs) : "\u2013",
-      anyRunning ? "" : "timestamp",
-      "Last run",
+      anyRunning
+        ? t("overview.stat.runningNow")
+        : lastRun
+          ? U.fmtRelative(lastRun.endTs || lastRun.startTs)
+          : "\u2013",
+      anyRunning ? "" : t("overview.stat.lastRunUnit"),
+      t("overview.stat.lastRunLabel"),
       anyRunning ? "stat-icon-running" : "stat-icon-check",
       anyRunning ? "\u25CF" : "\u2713",
     ),
     statCard(
       "statErrors",
       U.fmtNumber(errorCount),
-      "errors",
-      "Accounts in error",
+      t("overview.stat.errorsUnit"),
+      t("overview.stat.errorsLabel"),
       errorCount > 0 ? "stat-icon-alert icon-alert-active" : "stat-icon-check",
       errorCount > 0 ? "!" : "\u2713",
     ),
@@ -150,7 +181,9 @@ function renderStats(root, status) {
       "statSchedule",
       U.escapeHtml(sched.description || "\u2013"),
       sched.timezone || "UTC",
-      sched.both ? "Schedule (2 active)" : "Schedule",
+      sched.both
+        ? t("overview.stat.scheduleBothLabel")
+        : t("overview.stat.scheduleLabel"),
       sched.both ? "stat-icon-alert icon-alert-active" : sched.enabled ? "stat-icon-check" : "stat-icon-idle",
       sched.both ? "!" : sched.enabled ? "\u2713" : "\u2013",
     ),
@@ -170,7 +203,9 @@ function renderAccountRows(root) {
   }
 
   if (!accounts.length) {
-    container.innerHTML = '<p class="empty-note" style="padding:1.25rem">No accounts configured or observed yet.</p>';
+    container.innerHTML = `<p class="empty-note" style="padding:1.25rem">${U.escapeHtml(
+      t("overview.accountsEmpty"),
+    )}</p>`;
     return;
   }
 
@@ -202,7 +237,9 @@ function renderAccountRows(root) {
   container.innerHTML = accounts
     .map((a) => {
       const days = daysByKey[a.key] || null;
-      let barCell = '<p class="empty-note" style="font-size:0.78rem;margin:0">No history yet</p>';
+      let barCell = `<p class="empty-note" style="font-size:0.78rem;margin:0">${U.escapeHtml(
+        t("overview.noHistoryYet"),
+      )}</p>`;
       
       if (days) {
         // Toggle view logic
@@ -222,10 +259,12 @@ function renderAccountRows(root) {
 
       const todayText =
         todayGained != null
-          ? `+${todayGained.toLocaleString()}\u202fpts today`
+          ? t("overview.todayGained", {
+              points: todayGained.toLocaleString(),
+            })
           : a.status === "running"
-            ? "Running\u2026"
-            : "No run today";
+            ? t("overview.runningNow")
+            : t("overview.noRunToday");
 
       const accountHistory = histories[a.key] || [];
       let gainHtml = "";
@@ -237,18 +276,32 @@ function renderAccountRows(root) {
         const other = trueGain - selfReported;
         const gainText =
           other !== 0
-            ? `${U.fmtSigned(selfReported)}${other >= 0 ? "+" : "-"}${Math.abs(other).toLocaleString()} pts`
-            : `${U.fmtSigned(trueGain)} pts`;
-        gainHtml = ` \u00b7 <span class="gain-val" title="Change in points since last check-in from all sources">${gainText}</span>`;
+            ? t("common.pointsSuffix", {
+                points: `${U.fmtSigned(selfReported)}${other >= 0 ? "+" : "-"}${Math.abs(other).toLocaleString()}`,
+              })
+            : t("common.pointsSuffix", { points: U.fmtSigned(trueGain) });
+        gainHtml = ` \u00b7 <span class="gain-val" title="${U.escapeAttr(
+                t("overview.gainTitle"),
+              )}">${gainText}</span>`;
       }
 
       const dur = a.lastDurationSec != null ? U.fmtDuration(a.lastDurationSec) : null;
 
       const sub =
         a.status === "running"
-          ? `<span class="hero-sub-running">Running\u2026 ${U.escapeHtml(U.fmtRelative(a.lastStartAt))}</span>`
-          : `Last Run: ${U.escapeHtml(U.fmtRelative(a.lastEndAt || a.lastStartAt))}${
-              dur ? ` \u00b7 <span title="Last run duration">⏱ ${U.escapeHtml(dur)}</span>` : ""
+          ? `<span class="hero-sub-running">${U.escapeHtml(
+              t("overview.runningNow")
+            )} ${U.escapeHtml(U.fmtRelative(a.lastStartAt))}</span>`
+          : `${U.escapeHtml(
+              t("overview.lastRunAt", {
+                time: U.fmtRelative(a.lastEndAt || a.lastStartAt),
+              }),
+            )}${
+              dur
+                ? ` \u00b7 <span title="${U.escapeAttr(
+                    t("overview.lastRunDurationTitle"),
+                  )}">⏱ ${U.escapeHtml(dur)}</span>`
+                : ""
             }${gainHtml}`;
 
       return `<div class="hero-row">
@@ -256,12 +309,16 @@ function renderAccountRows(root) {
             <div class="hero-acc-card">
                 <div class="hero-acc-pts">
                     <span class="hero-pts-num">${a.lastPoints != null ? U.fmtNumber(a.lastPoints) : "\u2013"}</span>
-                    <span class="hero-pts-unit">Points</span>
+                    <span class="hero-pts-unit">${U.escapeHtml(t("common.points"))}</span>
                 </div>
                 <div class="hero-acc-info">
                     <div class="hero-acc-name">
                         ${MASK_EMAILS ? `ACCOUNT_${a.index}` : U.escapeHtml(a.email)}
-                        ${a.configured ? "" : ' <span class="tag-mini">unconfigured</span>'}
+                        ${a.configured
+                          ? ""
+                          : ` <span class="tag-mini">${U.escapeHtml(
+                              t("common.unconfigured"),
+                            )}</span>`}
                     </div>
                     <div class="hero-acc-meta">
                         <span class="hero-acc-today">
@@ -275,10 +332,12 @@ function renderAccountRows(root) {
                 </div>
                 <div class="hero-acc-actions">
                     ${a.configured && Number.isInteger(a.index)
-                      ? `<button type="button" class="link-btn" data-run-account="${a.index}" ${!usable || running || launching.has(a.index) ? "disabled" : ""} title="Run only ACCOUNT_${a.index}">${launching.has(a.index) ? "Starting…" : "Run only"}</button>`
+                      ? `<button type="button" class="link-btn" data-run-account="${a.index}" ${!usable || running || launching.has(a.index) ? "disabled" : ""} title="${U.escapeAttr(
+                            t("common.runOnlyTitle", { index: a.index }),
+                          )}">${launching.has(a.index) ? U.escapeHtml(t("common.starting")) : U.escapeHtml(t("common.runOnly"))}</button>`
                       : ""
                     }
-                    <button type="button" class="link-btn" data-trend="${U.escapeAttr(a.key)}" aria-pressed="${selected === a.key}">Trend</button>
+                    <button type="button" class="link-btn" data-trend="${U.escapeAttr(a.key)}" aria-pressed="${selected === a.key}">${U.escapeHtml(t("common.trend"))}</button>
                 </div>
             </div>
         </div>`;
@@ -334,7 +393,7 @@ function renderTrend() {
       value: h.points,
       label: U.fmtDateTime(h.ts),
     })),
-    { emptyMessage: "No point history recorded for this account yet." },
+    { emptyMessage: t("overview.trendEmpty") },
   );
 }
 
@@ -374,17 +433,29 @@ function renderRunHeader(root, status) {
   const done = Math.min(doneCount, total);
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
-  titleEl.textContent = active ? "Run in progress" : "Last run";
+  titleEl.textContent = active
+    ? t("overview.runInProgress")
+    : t("overview.lastRun");
 
   U.renderTicker(
     metaEl,
     [
       run?.version ? `v${run.version}` : null,
-      total ? `${done}/${total} done` : `${seenCount} accounts seen`,
-      total && runningCount ? `${runningCount} running` : null,
-      total && pendingCount ? `${pendingCount} pending` : null,
-      run?.clusters != null ? `${run.clusters} cluster${run.clusters === 1 ? "" : "s"}` : null,
-      run?.collected != null ? `${U.fmtSigned(run.collected)} points` : null,
+      total
+        ? t("overview.run.done", { done, total })
+        : t("overview.run.seen", { count: seenCount }),
+      total && runningCount
+        ? t("overview.run.runningCount", { count: runningCount })
+        : null,
+      total && pendingCount
+        ? t("overview.run.pendingCount", { count: pendingCount })
+        : null,
+      run?.clusters != null
+        ? tp("overview.run.clusters", run.clusters)
+        : null,
+      run?.collected != null
+        ? t("overview.run.points", { points: U.fmtSigned(run.collected) })
+        : null,
       pendingDelayLabel(status?.pendingDelay),
     ]
       .filter(Boolean)
@@ -403,7 +474,7 @@ function renderRunHeader(root, status) {
 
 export default {
   id: "overview",
-  label: "Overview",
+  labelKey: "tab.overview",
   interval: 10000,
 
   mount(root, ctx) {
@@ -413,13 +484,13 @@ export default {
             <p class="notice notice--warn" id="ovwAccountsError" hidden></p>
 
             <section aria-labelledby="stats-heading" class="stats">
-                <h2 id="stats-heading" class="visually-hidden">Summary</h2>
+                <h2 id="stats-heading" class="visually-hidden" data-i18n="overview.summaryHeading">Summary</h2>
                 <div class="stat-grid" id="statGrid"></div>
             </section>
 
             <section class="panel run-progress-box" id="runProgressBox" aria-labelledby="run-progress-heading">
                 <div class="run-progress-header">
-                    <h2 class="run-progress-title" id="run-progress-heading">Run in progress</h2>
+                    <h2 class="run-progress-title" id="run-progress-heading" data-i18n="overview.runInProgress">Run in progress</h2>
                     <span id="currentRunMeta" class="run-progress-meta"></span>
                 </div>
                 <div class="progress" id="currentRunProgressWrap" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
@@ -430,22 +501,22 @@ export default {
             <section class="panel hero-panel" id="currentRun" aria-labelledby="current-run-heading">
                 <div class="hero-panel-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
                     <div>
-                        <h2 id="current-run-heading" style="margin:0;">Accounts Overview</h2>
+                        <h2 id="current-run-heading" style="margin:0;" data-i18n="overview.accountsOverview">Accounts Overview</h2>
                     </div>
                     <div class="seg" id="ovwViewToggle">
-                        <button type="button" class="seg-btn ${viewMode === 'accum' ? 'seg-btn--active' : ''}" data-view="accum">Timeline</button>
-                        <button type="button" class="seg-btn ${viewMode === 'heatmap' ? 'seg-btn--active' : ''}" data-view="heatmap">Heatmap</button>
+                        <button type="button" class="seg-btn ${viewMode === 'accum' ? 'seg-btn--active' : ''}" data-view="accum" data-i18n="overview.viewTimeline">Timeline</button>
+                        <button type="button" class="seg-btn ${viewMode === 'heatmap' ? 'seg-btn--active' : ''}" data-view="heatmap" data-i18n="overview.viewHeatmap">Heatmap</button>
                     </div>
                 </div>
                 <div class="hero-layout" id="overviewHeroRows">
-                    <p class="empty-note" style="padding:1.25rem">Loading&hellip;</p>
+                    <p class="empty-note" style="padding:1.25rem" data-i18n="common.loading">Loading…</p>
                 </div>
             </section>
 
             <section class="panel" id="ovwTrendSection" hidden aria-labelledby="ovw-trend-heading">
                 <div class="panel-head">
-                    <h2 id="ovw-trend-heading">Point total &mdash; <span id="ovwTrendName"></span></h2>
-                    <span class="panel-sub">Every recorded balance, oldest to newest</span>
+                    <h2 id="ovw-trend-heading"><span data-i18n="overview.trendHeading">Point total</span> &mdash; <span id="ovwTrendName"></span></h2>
+                    <span class="panel-sub" data-i18n="overview.trendSub">Every recorded balance, oldest to newest</span>
                 </div>
                 <div id="ovwTrendChart" class="chart-wrap"></div>
             </section>`;

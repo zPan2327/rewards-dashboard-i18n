@@ -1,5 +1,6 @@
 import * as U from "../util.js";
 import { cached } from "../api.js";
+import { t, tp } from "../i18n/index.js";
 
 let accountsPayload = null;
 let rootEl = null;
@@ -12,17 +13,17 @@ const expandedAccounts = new Set();
 let batchRunning = false;
 
 const SOURCE_LABELS = {
-  search: "Search",
-  bonus: "Bonus search",
-  read: "Read",
-  checkIn: "Check-in",
-  claimReward: "Claim reward",
-  claimBonus: "Claim bonus",
-  urlReward: "URL reward",
-  visualSearch: "Visual search",
-  appReward: "App reward",
-  punchcard: "Punchcard",
-  searchOnBing: "Search activity",
+  search: "accounts.source.search",
+  bonus: "accounts.source.bonus",
+  read: "accounts.source.read",
+  checkIn: "accounts.source.checkIn",
+  claimReward: "accounts.source.claimReward",
+  claimBonus: "accounts.source.claimBonus",
+  urlReward: "accounts.source.urlReward",
+  visualSearch: "accounts.source.visualSearch",
+  appReward: "accounts.source.appReward",
+  punchcard: "accounts.source.punchcard",
+  searchOnBing: "accounts.source.searchOnBing",
 };
 
 function controlState() {
@@ -40,7 +41,10 @@ async function runAccount(account) {
   try {
     await context.api.control("start", { accountIndex: account.index });
     context.toast(
-      `Started ACCOUNT_${account.index} only (${account.email}).`,
+      t("overview.toast.runOnlyStarted", {
+        index: account.index,
+        email: account.email,
+      }),
       "success",
     );
     context.invalidate();
@@ -78,7 +82,10 @@ async function runSelectedAccounts() {
   try {
     await context.api.control("start", { excludedAccountIndexes });
     context.toast(
-      `Started ${selectedIndexes.length}/${configured.length} selected accounts.`,
+      t("accounts.toast.batchStarted", {
+        selected: selectedIndexes.length,
+        total: configured.length,
+      }),
       "success",
     );
     context.invalidate();
@@ -103,7 +110,10 @@ function renderBatchToolbar(root) {
   const count = selectedForBatch.size;
   const total = configured.length;
 
-  U.$("#accountsSelectedCount", root).textContent = `${count}/${total} selected`;
+  U.$("#accountsSelectedCount", root).textContent = t(
+    "accounts.batch.selectedCount",
+    { selected: count, total },
+  );
 
   const allBtn = U.$("#accountsSelectAll", root);
   allBtn.checked = total > 0 && count === total;
@@ -112,7 +122,9 @@ function renderBatchToolbar(root) {
 
   const runBtn = U.$("#accountsRunSelected", root);
   runBtn.disabled = !usable || running || batchRunning || count === 0;
-  runBtn.textContent = batchRunning ? "Starting\u2026" : "Run selected";
+  runBtn.textContent = batchRunning
+    ? t("common.starting")
+    : t("accounts.batch.runSelected");
 }
 
 function earnableBadge(account) {
@@ -121,7 +133,9 @@ function earnableBadge(account) {
     ? Object.values(earnable).reduce((sum, points) => sum + (Number(points) || 0), 0)
     : 0;
   if (total <= 0) return "";
-  return `<span class="point-source point-source--target"><strong>Earnable</strong> ${U.escapeHtml(U.fmtNumber(total))}</span>`;
+  return `<span class="point-source point-source--target"><strong>${U.escapeHtml(
+    t("accounts.earnable"),
+  )}</strong> ${U.escapeHtml(U.fmtNumber(total))}</span>`;
 }
 
 // Only sources that actually earned something today — ten "+0" chips per
@@ -131,8 +145,10 @@ function sourceBreakdown(account) {
   return Object.entries(SOURCE_LABELS)
     .filter(([source]) => Number(bySource[source]) > 0)
     .map(
-      ([source, label]) =>
-        `<span class="point-source"><strong>${U.escapeHtml(label)}</strong> ${U.escapeHtml(U.fmtSigned(Number(bySource[source])))}</span>`,
+      ([source, labelKey]) =>
+        `<span class="point-source"><strong>${U.escapeHtml(
+          t(labelKey),
+        )}</strong> ${U.escapeHtml(U.fmtSigned(Number(bySource[source])))}</span>`,
     )
     .join("");
 }
@@ -143,16 +159,29 @@ function protectionPresentation(account) {
   const remaining = account.streakProtectionRemainingDays;
   const days =
     remaining == null
-      ? "days unavailable"
-      : `${remaining} protection day${remaining === 1 ? "" : "s"} left`;
-  const state = account.streakProtectionEnabled ? "On" : "Off";
+      ? t("accounts.protection.daysUnavailable")
+      : tp("accounts.protection.daysLeft", remaining);
+  // The chip reads "180 days left" while its tooltip reads "180 protection
+  // days left" - two lengths of the same figure, kept apart on purpose so
+  // the English output matches the original dashboard exactly.
+  const daysLong =
+    remaining == null
+      ? t("accounts.protection.daysUnavailable")
+      : tp("accounts.protection.daysLeftLong", remaining);
+  const stateLabel = account.streakProtectionEnabled
+    ? t("common.on")
+    : t("common.off");
   const streak =
     account.streakCounter == null
-      ? "streak unavailable"
-      : `${U.fmtNumber(account.streakCounter)} day${account.streakCounter === 1 ? "" : "s"} current streak`;
+      ? t("accounts.protection.streakUnavailable")
+      : tp("accounts.protection.streakCurrent", account.streakCounter, {
+          count: U.fmtNumber(account.streakCounter),
+        });
 
   return {
-    state,
+    daysLong,
+    enabled: Boolean(account.streakProtectionEnabled),
+    state: stateLabel,
     days,
     streak,
     pillClass:
@@ -177,45 +206,78 @@ function detailGroups(a, protection) {
   const groups = [];
 
   groups.push([
-    "Configuration",
+    "accounts.detail.configuration",
     [
-      ["Configured in .env", a.configured ? "Yes" : "No \u2014 seen in logs only"],
-      ...(a.geoLocale ? [["Geo locale", a.geoLocale]] : []),
-      ...(a.langCode ? [["Language", a.langCode]] : []),
-      ...(a.hasTotp != null ? [["TOTP secret", a.hasTotp ? "Set" : "Not set"]] : []),
+      [
+        "accounts.kv.configuredInEnv",
+        a.configured ? t("common.yes") : t("accounts.kv.seenInLogsOnly"),
+      ],
+      ...(a.geoLocale
+        ? [["accounts.kv.geoLocale", a.geoLocale]]
+        : []),
+      ...(a.langCode ? [["accounts.kv.language", a.langCode]] : []),
+      ...(a.hasTotp != null
+        ? [
+            [
+              "accounts.kv.totpSecret",
+              a.hasTotp ? t("common.set") : t("common.notSet"),
+            ],
+          ]
+        : []),
       ...(a.hasRecoveryEmail != null
-        ? [["Recovery email", a.hasRecoveryEmail ? "Set" : "Not set"]]
+        ? [
+            [
+              "accounts.kv.recoveryEmail",
+              a.hasRecoveryEmail ? t("common.set") : t("common.notSet"),
+            ],
+          ]
         : []),
       [
-        "Proxy",
+        "accounts.kv.proxy",
         a.proxy
-          ? `${a.proxy.url}${a.proxy.port ? `:${a.proxy.port}` : ""}${a.proxy.hasCredentials ? " (authenticated)" : ""}`
-          : "None",
+          ? `${a.proxy.url}${a.proxy.port ? `:${a.proxy.port}` : ""}${a.proxy.hasCredentials ? t("accounts.kv.proxyAuthenticated") : ""}`
+          : t("common.none"),
       ],
     ],
   ]);
 
   groups.push([
-    "Streak &amp; protection",
+    "accounts.detail.streakProtection",
     [
-      ["Success streak", `${a.successStreak} run${a.successStreak === 1 ? "" : "s"}`],
+      [
+        "accounts.kv.successStreak",
+        tp("accounts.streak.runs", a.successStreak),
+      ],
       ...(protection
         ? [
           [
-            "Current streak",
+            "accounts.kv.currentStreak",
             a.streakCounter == null
-              ? "Unavailable"
-              : `${U.fmtNumber(a.streakCounter)} day${a.streakCounter === 1 ? "" : "s"}`,
+              ? t("common.unavailable")
+              : tp("accounts.streak.days", a.streakCounter, {
+                  count: U.fmtNumber(a.streakCounter),
+                }),
           ],
-          ["Streak protection", protection.state === "On" ? "Enabled" : "Disabled"],
           [
-            "Protection days remaining",
+            "accounts.kv.streakProtection",
+            protection.enabled ? t("common.enabled") : t("common.disabled"),
+          ],
+          [
+            "accounts.kv.protectionDaysRemaining",
             a.streakProtectionRemainingDays == null
-              ? "Unavailable"
-              : `${a.streakProtectionRemainingDays} day${a.streakProtectionRemainingDays === 1 ? "" : "s"}`,
+              ? t("common.unavailable")
+              : tp(
+                  "accounts.streak.days",
+                  a.streakProtectionRemainingDays,
+                ),
           ],
           ...(a.streakProtectionUpdatedAt
-            ? [["Protection status checked", U.fmtRelative(a.streakProtectionUpdatedAt)]]
+            ? [
+                [
+                  "accounts.kv.protectionChecked",
+                  U.fmtRelative(a.streakProtectionUpdatedAt),
+                ],
+              ]
             : []),
         ]
         : []),
@@ -223,20 +285,20 @@ function detailGroups(a, protection) {
   ]);
 
   groups.push([
-    "Run history",
+    "accounts.detail.runHistory",
     [
-      ["Runs recorded by the API", U.fmtNumber(a.apiRuns)],
-      ["Points collected (API history)", U.fmtSigned(a.apiTotalCollected)],
-      ["Last duration", U.fmtDuration(a.lastDurationSec)],
-      ["History points loaded", U.fmtNumber(a.historyCount)],
+      ["accounts.kv.runsRecorded", U.fmtNumber(a.apiRuns)],
+      ["accounts.kv.pointsCollected", U.fmtSigned(a.apiTotalCollected)],
+      ["accounts.kv.lastDuration", U.fmtDuration(a.lastDurationSec)],
+      ["accounts.kv.historyPointsLoaded", U.fmtNumber(a.historyCount)],
     ],
   ]);
 
   return `<div class="acc-detail-groups">${groups
     .map(
-      ([title, items]) => `
+      ([titleKey, items]) => `
         <div class="acc-detail-group">
-            <h3 class="acc-detail-group-title">${title}</h3>
+            <h3 class="acc-detail-group-title">${t(titleKey)}</h3>
             ${kv(items)}
         </div>`,
     )
@@ -250,7 +312,11 @@ function statusIconParts(statusKey) {
   switch (statusKey) {
     case "success":
     case "done":
-      return { cls: "stat-icon-check", icon: "\u2713", label: "Success" };
+      return {
+        cls: "stat-icon-check",
+        icon: "\u2713",
+        label: t("pill.success"),
+      };
     case "running":
     case "starting":
     case "stopping":
@@ -263,7 +329,7 @@ function statusIconParts(statusKey) {
     case "stopped":
       return { cls: "stat-icon-alert icon-alert-active", icon: "!", label: U.pillParts(statusKey).label };
     default:
-      return { cls: "stat-icon-idle", icon: "\u2013", label: "Idle" };
+      return { cls: "stat-icon-idle", icon: "\u2013", label: t("pill.idle") };
   }
 }
 
@@ -290,14 +356,18 @@ function renderAccountPanel(a, live) {
   const runButton =
     a.configured && Number.isInteger(a.index)
       ? `<button type="button" class="btn btn-primary btn-small" data-run-account="${a.index}" ${!usable || running || launching.has(a.index) ? "disabled" : ""
-      } title="Run only ACCOUNT_${a.index}">${launching.has(a.index) ? "Starting\u2026" : "Run only"}</button>`
+      } title="${U.escapeAttr(
+        t("common.runOnlyTitle", { index: a.index }),
+      )}">${launching.has(a.index) ? U.escapeHtml(t("common.starting")) : U.escapeHtml(t("common.runOnly"))}</button>`
       : "";
 
   const selectCheckbox =
     a.configured && Number.isInteger(a.index)
-      ? `<label class="check acc-batch-select" title="Include ACCOUNT_${a.index} in a batch run">
+      ? `<label class="check acc-batch-select" title="${U.escapeAttr(
+          t("accounts.batch.selectTitle", { index: a.index }),
+        )}">
           <input type="checkbox" data-select-account="${a.index}" ${selectedForBatch.has(a.index) ? "checked" : ""}>
-          <span>Select</span>
+          <span>${U.escapeHtml(t("common.select"))}</span>
         </label>`
       : "";
 
@@ -307,7 +377,19 @@ function renderAccountPanel(a, live) {
 
   const chips = [
     protection
-      ? `<span class="pill ${protection.pillClass}" title="${U.escapeAttr(protection.streak)}; streak protection is ${protection.state.toLowerCase()}; ${U.escapeAttr(protection.days)}">Protection ${protection.state} \u00b7 ${a.streakProtectionRemainingDays == null ? "days unavailable" : `${a.streakProtectionRemainingDays} day${a.streakProtectionRemainingDays === 1 ? "" : "s"} left`}</span>`
+      ? `<span class="pill ${protection.pillClass}" title="${U.escapeAttr(
+          t(protection.enabled
+            ? "accounts.protection.chipTitleOn"
+            : "accounts.protection.chipTitleOff", {
+            streak: protection.streak,
+            days: protection.daysLong,
+          }),
+        )}">${U.escapeHtml(
+          t("accounts.protection.chip", {
+            state: protection.state,
+            days: protection.days,
+          }),
+        )}</span>`
       : "",
     earnableBadge(live || {}),
     sourceBreakdown(live || {}),
@@ -319,11 +401,21 @@ function renderAccountPanel(a, live) {
     <div class="panel account-detail-panel">
         <div class="panel-head">
             <h2>
-                <button type="button" class="acc-detail-toggle" data-toggle-details="${U.escapeAttr(a.key)}" aria-expanded="${isExpanded}" aria-controls="${detailsId}" title="${isExpanded ? "Collapse details" : "Expand details"}">\u25b8</button>
-                <span class="acc-status-icon ${statusIconCls}" role="img" aria-label="${U.escapeAttr(statusLabel)}" title="${U.escapeAttr(statusLabel)}">${statusIcon}</span>${U.escapeHtml(a.email)}
+                <button type="button" class="acc-detail-toggle" data-toggle-details="${U.escapeAttr(a.key)}" aria-expanded="${isExpanded}" aria-controls="${detailsId}" title="${U.escapeAttr(
+                  isExpanded
+                    ? t("accounts.collapseDetails")
+                    : t("accounts.expandDetails"),
+                )}">\u25b8</button>
+                <span class="acc-status-icon ${statusIconCls}" role="img" aria-label="${U.escapeAttr(
+                  statusLabel,
+                )}" title="${U.escapeAttr(statusLabel)}">${statusIcon}</span>${U.escapeHtml(a.email)}
             </h2>
             ${a.index != null ? `<span class="tag-mini acc-tag-account-id">ACCOUNT_${a.index}</span>` : ""}
-            ${a.configured ? "" : '<span class="tag-mini">unconfigured</span>'}
+            ${a.configured
+              ? ""
+              : `<span class="tag-mini">${U.escapeHtml(
+                  t("common.unconfigured"),
+                )}</span>`}
             <span class="acc-detail-actions">
                 <span class="acc-status-pill">${U.statusPill(statusKey)}</span>
                 ${selectCheckbox}
@@ -334,7 +426,7 @@ function renderAccountPanel(a, live) {
             ${detailGroups(a, protection)}
         </div>
         ${chips ? `<div class="account-today-row">
-            <span class="account-today-label">Today</span>
+            <span class="account-today-label">${U.escapeHtml(t("common.today"))}</span>
             <div class="account-today-chips">${chips}</div>
         </div>` : ""}
     </div>`;
@@ -355,7 +447,9 @@ function render(root) {
   }
 
   if (!accounts.length) {
-    container.innerHTML = '<p class="empty-note" style="padding:1.25rem">No accounts configured or observed yet.</p>';
+    container.innerHTML = `<p class="empty-note" style="padding:1.25rem">${U.escapeHtml(
+      t("common.noAccountsConfigured"),
+    )}</p>`;
     renderBatchToolbar(root);
     return;
   }
@@ -396,7 +490,7 @@ function render(root) {
 
 export default {
   id: "accounts",
-  label: "Accounts",
+  labelKey: "tab.accounts",
   interval: 10000,
 
   mount(root, ctx) {
@@ -406,21 +500,23 @@ export default {
       <p class="notice notice--warn" id="accountsError" hidden></p>
       <div class="panel batch-select-box" id="accountsBatchToolbar">
           <div class="batch-select-header">
-              <h2 class="batch-select-title">Batch run</h2>
+              <h2 class="batch-select-title" data-i18n="accounts.batch.title">Batch run</h2>
               <div class="batch-select-controls">
                   <label class="check">
                       <input type="checkbox" id="accountsSelectAll">
-                      <span>Select all</span>
+                      <span data-i18n="accounts.batch.selectAll">Select all</span>
                   </label>
-                  <span class="hint" id="accountsSelectedCount">0/0 selected</span>
-                  <button type="button" class="btn btn-primary btn-small" id="accountsRunSelected" disabled>Run selected</button>
+                  <span class="hint" id="accountsSelectedCount">${U.escapeHtml(
+                    t("accounts.batch.selectedCount", { selected: 0, total: 0 }),
+                  )}</span>
+                  <button type="button" class="btn btn-primary btn-small" id="accountsRunSelected" disabled data-i18n="accounts.batch.runSelected">Run selected</button>
               </div>
           </div>
       </div>
       <div id="accountsContainer">
-          <p class="empty-note" style="padding:1.25rem">Loading accounts configuration details&hellip;</p>
+          <p class="empty-note" style="padding:1.25rem" data-i18n="accounts.loadingDetails">Loading accounts configuration details…</p>
       </div>
-      <p class="hint" style="margin-top: 1.5rem;">Accounts are configured in the bot&rsquo;s <code>.env</code> (<code>ACCOUNT_N_*</code>).
+      <p class="hint" style="margin-top: 1.5rem;" data-i18n-html="accounts.footnote">Accounts are configured in the bot&rsquo;s <code>.env</code> (<code>ACCOUNT_N_*</code>).
       The control API exposes full local email addresses but never sends passwords, recovery addresses, TOTP secrets, or proxy credentials.</p>
     `;
     mounted = true;

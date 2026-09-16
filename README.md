@@ -1,153 +1,167 @@
-# Rewards Dashboard
+# Rewards Dashboard（简体中文版）
 
-A companion dashboard for [microsoft-rewards-script](https://github.com/thenetsky/microsoft-rewards-script), driven entirely over HTTP by the bot's [Control API](https://github.com/thenetsky/microsoft-rewards-script/tree/v4/scripts/api) (`API_MODE=true`). It shows account status, point totals, and trends at `http://<host-ip>:8890`, and can start/stop/schedule runs and edit the bot's config.
+[![Release](https://img.shields.io/github/v/release/zPan2327/rewards-dashboard-i18n?include_prereleases&sort=semver)](https://github.com/zPan2327/rewards-dashboard-i18n/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 
-## Screenshots
+[`mgrimace/rewards-dashboard`](https://github.com/mgrimace/rewards-dashboard) 的**简体中文 / 多语言（i18n）分支**。
 
-| Desktop | Mobile |
-| --- | --- |
-| ![Desktop screenshot](./docs/Screenshot-dash.png) | ![Mobile screenshot](./docs/Screenshot-mobile.png) |
+在原版基础上加入了一套完整、可长期跟随上游更新的国际化方案：
 
-## Features
-- **Local only** - all data is stored locally, your account data is your own.
-- **Account overview** — points per account, run status, and error highlights
-- **Point accumulation bars** — see trends and errors at a glance with daily blocks per account, with weekly dividers; hover for exact date/points/total
-- **Passwordless codes** — displays passwordless two-digit codes with a live 60-second countdown so you never miss them in the logs
-- **History** — parsed events stored in a local SQLite db so data survives restarts, independent of the bot's own in-memory log buffer
-- **Theme support** — Includes themes: Nord, Dracula, Catppuccin, Gruvbox, Tokyo Night, and more!
-- **Responsive** - Features a simplified mobile view
+- 完整保留英文原版，默认语言仍是 **English**，行为与上游一致；
+- 新增 **简体中文**，界面上可自由切换，选择会**记住**（刷新、重开浏览器都不丢）；
+- 中文文案针对「仪表盘 + Microsoft Rewards」的真实语境重写，术语全项目统一；
+- 界面文案全部抽成**独立的语言资源 + 稳定的 translation key**，业务代码里不再硬编码任何一种语言；
+- 缺少译文时**自动回退英文**，绝不会出现 `undefined` 或空白；
+- 内置 **翻译自检工具**，同步上游新版本时能一眼看出「新增了哪些待翻译文案 / 哪些 key 的占位符对不上」；
+- **除语言相关内容外，没有改动任何功能、接口或数据结构**：API 路径与请求/响应格式、鉴权逻辑、数据处理、Scheduler/Cron、Rewards Script 控制、Docker 部署方式全部保持原样。
 
-## Quick start (Docker)
+> 截图、功能列表、环境变量等完整说明见英文原版文档：[README.en.md](./README.en.md)
 
-1. On the bot side, enable the Control API — set `API_MODE=true` and `API_TOKEN=<some-long-random-string>` on the `microsoft-rewards-script` service, and expose port `3010`.
+---
 
-> [!TIP]
-> Also enable the `API_ALLOW_SCHEDULE_WRITE` and `API_ALLOW__CONFIG_WRITE` on the script side to allow the dashboard to modify the script's config and scheduler.
+## 快速开始（Docker）
 
-2. Review this repo's `compose.yaml` and set `CONTROL_API_TOKEN` (in a `.env` file next to it) to that same token.
-3. Build and start the container: `docker compose up -d`.
-4. Visit the dash at `http://<host-ip>:8890`.
+### 方式一：克隆后本地构建（推荐）
 
-> [!WARNING]
-> Both services need to share a Docker network so the dashboard can reach the Control API by container name. 
-> The easiest way to do this is copy the full rewards-dashboard service into your script's compose.yaml. See [sample-stack-compose.yaml](sample-stack-compose.yaml)
-> Alternatively, create a docker network (e..g, `rewards`), and add the following to both the script and the dash compose.yaml
+```bash
+git clone https://github.com/zPan2327/rewards-dashboard-i18n.git
+cd rewards-dashboard-i18n
+
+# 填写与机器人端一致的 Control API 令牌
+cp .env.example .env
+vi .env                      # API_TOKEN=...
+
+docker compose up -d --build
+```
+
+打开 `http://<宿主机IP>:8890`。
+
+### 方式二：在你要用的目录里直接拉取源码运行
+
+```bash
+mkdir rewards-dashboard-i18n && cd rewards-dashboard-i18n
+curl -fsSL https://raw.githubusercontent.com/zPan2327/rewards-dashboard-i18n/main/compose.yaml -o compose.yaml
+cp .env.example .env 2>/dev/null || printf 'API_TOKEN=your-token\n' > .env
+# compose.yaml 里的 build.context 指向 ./rewards-dashboard，所以还要拿到源码
+git clone --depth 1 https://github.com/zPan2327/rewards-dashboard-i18n.git src
+cp -r src/rewards-dashboard .
+docker compose up -d --build
+```
+
+### 方式三：使用已构建好的镜像
+
+本仓库的 Release 工作流会把镜像推送到 GitHub Container Registry：
+
+```bash
+docker pull ghcr.io/zpan2327/rewards-dashboard-i18n:latest
+```
+
+> [!IMPORTANT]
+> GHCR 上的 package 默认是 **private**。首次发布后，请到
+> `GitHub → 你的头像 → Packages → rewards-dashboard-i18n → Package settings → Change visibility`
+> 把它改成 **public**，否则别人（以及未登录的 `docker pull`）拉不下来。
+
+---
+
+## 机器人端需要做什么
+
+在 `microsoft-rewards-script` 一侧开启 Control API：
 
 ```yaml
-  networks:
-    - rewards
-
-networks:
-  rewards:
-    driver: bridge
-    external: true
-
+environment:
+  API_MODE: "true"
+  API_TOKEN: "<一段足够长的随机串>"     # 必须和本项目的 API_TOKEN 相同
+  API_ALLOW_CONFIG_WRITE: "true"        # 想让仪表盘能改机器人配置时
+  API_ALLOW_SCHEDULE_WRITE: "true"      # 想让仪表盘能改机器人定时任务时
 ```
 
-## Quick start (Bare metal)
-Requires Node 22.13+ (uses the built-in `node:sqlite`). Zero npm packages.
+两个容器必须能互相访问：把它们放进同一个 Docker 网络（本项目 `compose.yaml` 里已经接上了外部的 `rewards` 网络），或者直接把本项目的服务复制进机器人的 `compose.yaml`，参考 [`sample-stack-compose.yaml`](./sample-stack-compose.yaml)。
+
+---
+
+## 语言切换
+
+界面右上角、主题选择框旁边就是**语言选择框**：
+
+| 选项 | 说明 |
+| --- | --- |
+| `English` | 默认语言，与上游原版完全一致 |
+| `简体中文` | 本次新增的完整中文翻译 |
+
+选择保存在浏览器的 `localStorage`（键名 `rewards-dashboard:locale`），刷新页面、关闭后重新打开都会保持。
+
+---
+
+## 技术实现
+
+界面文案全部抽到独立的语言资源里，业务代码只引用 **key**：
+
+```
+rewards-dashboard/
+├── public/i18n/
+│   ├── index.js              运行时：t() / tp() / setLocale() / applyI18n() …
+│   ├── cronText.js           把控制 API 返回的英文 cron 描述重新排版成中文
+│   └── locales/
+│       ├── en.js             英文原文（源语言，全部 key 的权威定义）
+│       └── zh-CN.js          简体中文译文
+└── tools/
+    └── i18n-check.mjs        翻译自检工具
+```
+
+- 查找顺序：**当前语言 → 英文 → key 本身**，所以漏翻时显示英文，不会出现空值或 `undefined`；
+- key 采用 `namespace.key` 形式，**key 是身份、不是文案** —— 英文措辞变了 key 不动，已有译文继续生效；
+- 支持复数形式 `{ one, other }` 与 `{param}` 插值；
+- 英文模式下日期格式完全不干预（输出与改动前逐字节一致），切到中文才交给 `Intl` 本地化。
+
+完整设计说明、术语表和「如何跟随上游更新」见 **[docs/i18n.md](./docs/i18n.md)**。
+
+### 自检工具
 
 ```bash
-# in the bot repo
-API_TOKEN=some-long-random-string node scripts/api/server.js
+cd rewards-dashboard
+node tools/i18n-check.mjs          # 人类可读报告
+node tools/i18n-check.mjs --strict # 连无用 key 也当作错误
 ```
 
-Then point the dashboard at it - `CONTROL_API_TOKEN` must equal the API's `API_TOKEN`:
+它会报告：`ENGLISH FALLBACK`（缺中文，界面会显示英文）、`UNKNOWN t() KEY`（代码用了但字典里没有）、`PLACEHOLDER MISMATCH`（占位符对不上）、`ORPHAN`、`EMPTY VALUE`、`PLURAL VARIANT MISSING`、`UNUSED KEY`。
+
+---
+
+## 跟随上游更新（重点）
+
+这套方案的核心目标就是：**上游发新版本时，不需要重新翻译一遍**。
 
 ```bash
-cp .env.example .env      # edit CONTROL_API_URL + CONTROL_API_TOKEN
-npm start                 # http://localhost:8890
+git remote add upstream https://github.com/mgrimace/rewards-dashboard.git
+git fetch upstream --tags
+git merge upstream/v1.3.7        # 只会在 views/config.js 等少数调用点有冲突
+
+cd rewards-dashboard
+node tools/i18n-check.mjs        # 看还差哪些 key
 ```
 
-## Authentication
-Dashboard login protection is configured separately with `DASHBOARD_USERNAME`
-and `DASHBOARD_PASSWORD`. Basic authentication is enabled only when both values
-are non-empty. Leave either one empty to open the dashboard without a browser
-login prompt. This does not disable authentication between the dashboard and the
-Control API; `CONTROL_API_TOKEN` still needs to match the API's `API_TOKEN`.
+| 上游的改动 | 你要做的事 |
+| --- | --- |
+| 改了某条英文文案的措辞 | **什么都不用做**，译文继续生效 |
+| 新增了一个界面文案 | 补 **1 条** `zh-CN.js` 条目（在补之前显示英文） |
+| 新增了一个配置项 | **什么都不用做**，配置页会自动回退显示代码里的英文 |
+| 删除了某个功能 | 删掉对应的旧 key（自检会提示 `UNUSED KEY`） |
 
-
-## Optional API flags
-
-Two features are gated on the _API_ side, and are off by default:
-
-| Set on the Control API         | What it unlocks                                                                                                       |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| `API_ALLOW_CONFIG_WRITE=true`  | The **Config** tab can save changes. Without it, config is read-only and saving returns a 403 (the tab tells you so). |
-| `API_ALLOW_CONFIG_REVEAL=true` | The **Config** tab's "reveal secrets" toggle. Without it, webhook URLs and tokens stay `***REDACTED***`.              |
+详细流程见 [docs/i18n.md](./docs/i18n.md) 第 7 节。
 
 ---
 
-## Tabs
+## 安全提醒
 
-**Overview** - stat cards (accounts, combined balance, last run, accounts in error, next scheduled run), a live run panel with a progress bar and per-account rows while the bot is working, and a recent-activity feed.
-
-**Accounts** - every configured account, joined with what the logs actually observed: current balance, daily accumulation bars, today's gain, success/error state, current streak, streak protection status and remaining protection days, and a details drawer (slot, geo, language, TOTP, recovery email, proxy, lifetime collected). Accounts live in the bot's `.env`, so this tab reports on them rather than editing them.
-
-**Logs** - live log viewer over SSE. Level filter, text search, pause (buffers while paused), autoscroll, load-more, download, clear.
-
-**Runs** - points collected per day (14/30/90-day views) plus a run history table, and a collapsible list of process exits pulled from the API - which catches crashes that never made it to a `RUN-END` line. A run that dies mid-flight is closed out and marked **Crashed** with its exit code, instead of sitting at "running" forever.
-
-**Schedule** - the dashboard's own cron. Presets, a live-validated cron field with a plain-English description, account exclusions, missed-run recovery, "skip if already running", next/last run times and the last result. It's stored in the dashboard's database and fires a run by pressing Start on the API for you.
-
-**Config** - the bot's `config.json`. Quick toggles for the common booleans, plus a raw JSON editor. Saving sends a **PATCH of only the fields you changed**, never a full document - so the redacted webhook secrets in your view can't be written over the real ones. If you do edit a redacted field, the save is refused with an explanation. Validation errors from the bot's own validator come back inline.
-
-**Diagnostics** - the bot's error captures. Error text, screenshot, and the HTML dump, streamed through the dashboard.
-
-Above the tabs, a control strip is always visible: **Start**, **Stop**, **Restart**, and behind the ⋮ menu, **Force stop** and **Shut down API**. Login approval codes appear at the top of the page the moment they show up in the logs, with a countdown.
+- `.env`、`data/`（SQLite 数据库）都在 `.gitignore` 里，**不会被提交**；
+- 仓库中不包含任何真实的 `API_TOKEN`、Webhook 地址、账号邮箱或代理凭据；
+- 仪表盘对外只暴露 `8890` 端口，请自行用防火墙 / 反向代理限制访问范围；
+- 建议始终在 Control API 上设置强 `API_TOKEN`。
 
 ---
 
-## How it works
+## 致谢与许可
 
-**One SSE connection, fanned out.** The server holds a single event stream to the Control API and broadcasts to every open tab (`lib/eventHub.js`), with `Last-Event-ID` resume and reconnect backoff. Ten tabs open still means one connection to the bot.
-
-**Two data paths.** Log lines go to the browser live, _and_ through the parser into SQLite (`lib/store.js`). The API keeps a 2,000-line in-memory buffer that dies with the process; the dashboard's point history, run records, activity and schedule survive restarts of both.
-
-**Live points.** The bot prints its balance and every gain as it earns them, and the API folds those lines into a running tally (`GET /points`). So the Overview shows points climbing _during_ a run, not just the final total. When an account finishes, the live tally is replaced by the authoritative `ACCOUNT-END` numbers.
-
-**Separate authentication layers.** `CONTROL_API_TOKEN` is sent only from the dashboard to the Control API as a Bearer token and must match the API's `API_TOKEN`. Browser access uses the optional `DASHBOARD_USERNAME` and `DASHBOARD_PASSWORD` pair instead.
-
-**No dependencies.** Charts are hand-rolled inline SVG (`public/charts.js`) that read their colors from CSS variables, so they follow the theme and work offline. The 14 themes from the original dashboard are untouched.
-
----
-
-## Environment
-
-| Variable              | Default                                |                                                                                           |
-| --------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `CONTROL_API_URL`     | `http://microsoft-rewards-script:3010` | Where the Control API listens                                                             |
-| `CONTROL_API_TOKEN`   | -                                      | Bearer token sent to the Control API; must match the API's `API_TOKEN`                    |
-| `DASHBOARD_USERNAME`  | -                                      | Optional Basic-auth username; auth is enabled only when username and password are set     |
-| `DASHBOARD_PASSWORD`  | -                                      | Optional Basic-auth password; leave either dashboard credential empty to disable login    |
-| `PORT`                | `8890`                                 |                                                                                           |
-| `TZ`                  | `UTC`                                  | Buckets points into days - set it                                                         |
-| `DASHBOARD_TITLE`     | `Microsoft Rewards`                    | Header title                                                                              |
-| `POLL_MS`             | `5000`                                 | Status poll interval (logs are streamed)                                                  |
-| `LOG_REPLAY`          | `300`                                  | Log lines to replay when the stream connects                                              |
-| `DATA_DIR`            | `./data`                               | Where `dashboard.sqlite` lives - the only folder anything writes to. Docker sets `/data`. |
-
----
-
-## Troubleshooting
-
-**"Control API unreachable"** - the dashboard can't open a TCP connection. Check `CONTROL_API_URL`. In Docker, `localhost` means the dashboard's own container: use the API's service name, or `host.docker.internal` with `extra_hosts`.
-
-**"Control API rejected our token"** - `CONTROL_API_TOKEN` ≠ `API_TOKEN`.
-
-**Browser login prompt does not appear** - both `DASHBOARD_USERNAME` and `DASHBOARD_PASSWORD` must be non-empty. Authentication is intentionally disabled when either value is empty.
-
-**Saving config returns 403** - the API was started without `API_ALLOW_CONFIG_WRITE=true`.
-
-**Daily bars roll over at the wrong time** - `TZ` isn't set.
-
-**A scheduled run didn't fire** - check the Schedule tab's missed-run policy, excluded accounts, and "Last result".
-
-## Support
-
-If you've found this project helpful and would like to support further development, please consider donating. Thank you:
-
-[![Donate with PayPal](https://img.shields.io/badge/PayPal-00457C?logo=paypal&logoColor=white)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=R4QX73RWYB3ZA)
-[![Liberapay](https://img.shields.io/badge/Liberapay-F6C915?logo=liberapay&logoColor=black)](https://liberapay.com/cammarata.m/)
-[![Ko-fi](https://img.shields.io/badge/Ko--fi-FF5E5B?logo=ko-fi&logoColor=white)](https://www.ko-fi.com/mgrimace)
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-FFDD00?logo=buymeacoffee&logoColor=black)](https://www.buymeacoffee.com/cammaratam)
+- 上游项目：[mgrimace/rewards-dashboard](https://github.com/mgrimace/rewards-dashboard)
+- 配套机器人：[thenetsky/microsoft-rewards-script](https://github.com/thenetsky/microsoft-rewards-script)
+- 本分支沿用上游的 [MIT License](./LICENSE)

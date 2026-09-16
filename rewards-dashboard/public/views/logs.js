@@ -1,4 +1,5 @@
 import * as U from "../util.js";
+import { t, tp } from "../i18n/index.js";
 
 const MAX_LINES = 3000;
 const LEVEL_RANK = { debug: 0, info: 1, warn: 2, error: 3 };
@@ -47,20 +48,21 @@ function renderAll() {
   const visible = entries.filter(matches);
   box.innerHTML = visible.length
     ? visible.slice(-MAX_LINES).map(lineHtml).join("")
-    : '<p class="empty-note">No log lines match the current filter.</p>';
+    : `<p class="empty-note">${U.escapeHtml(t("logs.noMatch"))}</p>`;
   if (autoscroll) box.scrollTop = box.scrollHeight;
   updateMeta();
 }
 
 function updateMeta() {
-  U.$("#logCount", rootEl).textContent =
-    `${entries.length.toLocaleString()} line${entries.length === 1 ? "" : "s"} buffered`;
+  U.$("#logCount", rootEl).textContent = tp("logs.buffered", entries.length, {
+    count: entries.length.toLocaleString(),
+  });
   const btn = U.$("#logPause", rootEl);
   btn.textContent = paused
     ? pendingWhilePaused
-      ? `Resume (${pendingWhilePaused} new)`
-      : "Resume"
-    : "Pause";
+      ? t("logs.resumePending", { count: pendingWhilePaused })
+      : t("logs.resume")
+    : t("logs.pause");
   btn.classList.toggle("btn-primary", paused);
 }
 
@@ -117,7 +119,7 @@ function download() {
 
 export default {
   id: "logs",
-  label: "Logs",
+  labelKey: "tab.logs",
   interval: 0, // live — nothing to poll
 
   mount(root, ctx) {
@@ -125,36 +127,38 @@ export default {
     root.innerHTML = `
             <section class="panel" aria-labelledby="logs-heading">
                 <div class="panel-head">
-                    <h2 id="logs-heading">Live logs</h2>
-                    <span class="panel-sub" id="logCount">0 lines buffered</span>
+                    <h2 id="logs-heading" data-i18n="logs.title">Live logs</h2>
+                    <span class="panel-sub" id="logCount">${U.escapeHtml(
+                      tp("logs.buffered", 0),
+                    )}</span>
                 </div>
 
                 <div class="toolbar">
                     <label class="field field--inline">
-                        <span>Level</span>
+                        <span data-i18n="logs.level">Level</span>
                         <select id="logLevel" class="input">
-                            <option value="all">All</option>
-                            <option value="info">Info and up</option>
-                            <option value="warn">Warnings and up</option>
-                            <option value="error">Errors only</option>
+                            <option value="all" data-i18n="logs.levelAll">All</option>
+                            <option value="info" data-i18n="logs.levelInfo">Info and up</option>
+                            <option value="warn" data-i18n="logs.levelWarn">Warnings and up</option>
+                            <option value="error" data-i18n="logs.levelError">Errors only</option>
                         </select>
                     </label>
                     <label class="field field--grow">
-                        <span class="visually-hidden">Search</span>
-                        <input id="logSearch" class="input" type="search" placeholder="Filter lines\u2026" autocomplete="off">
+                        <span class="visually-hidden" data-i18n="logs.search">Search</span>
+                        <input id="logSearch" class="input" type="search" placeholder="Filter lines\u2026" data-i18n-placeholder="logs.filterPlaceholder" autocomplete="off">
                     </label>
                     <label class="check">
                         <input type="checkbox" id="logAutoscroll" checked>
-                        <span>Autoscroll</span>
+                        <span data-i18n="logs.autoscroll">Autoscroll</span>
                     </label>
-                    <button type="button" id="logPause" class="btn">Pause</button>
-                    <button type="button" id="logMore" class="btn">Load 2000</button>
-                    <button type="button" id="logDownload" class="btn">Download</button>
-                    <button type="button" id="logClear" class="btn">Clear</button>
+                    <button type="button" id="logPause" class="btn" data-i18n="logs.pause">Pause</button>
+                    <button type="button" id="logMore" class="btn" data-i18n="logs.loadMore">Load 2000</button>
+                    <button type="button" id="logDownload" class="btn" data-i18n="common.download">Download</button>
+                    <button type="button" id="logClear" class="btn" data-i18n="common.clear">Clear</button>
                 </div>
 
                 <div class="log-box" id="logBox" tabindex="0" aria-live="off">
-                    <p class="empty-note">Waiting for log lines\u2026</p>
+                    <p class="empty-note" data-i18n="logs.waiting">Waiting for log lines…</p>
                 </div>
             </section>`;
 
@@ -197,7 +201,9 @@ export default {
         for (const e of res.logs || []) addEntry(e, false);
         renderAll();
         U.toast(
-          `Buffer filled to ${entries.length.toLocaleString()} lines.`,
+          t("logs.bufferFilled", {
+            count: entries.length.toLocaleString(),
+          }),
           "success",
         );
       } catch (e) {

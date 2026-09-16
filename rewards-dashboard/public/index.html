@@ -8,14 +8,14 @@
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" href="/icon.png" type="image/png">
     <link rel="apple-touch-icon" href="/icon.png">
-    <title>Microsoft Rewards Dashboard</title>
+    <title data-i18n="app.docTitle">Microsoft Rewards Dashboard</title>
     <link rel="stylesheet" href="/style.css" />
   </head>
   <body>
-    <a class="skip-link" href="#main">Skip to main content</a>
+    <a class="skip-link" href="#main" data-i18n="app.skipToMain">Skip to main content</a>
 
     <header class="topbar">
-      <h1>🏅 Rewards Dashboard</h1>
+      <h1 data-i18n="app.title">🏅 Rewards Dashboard</h1>
       <div class="topbar-right">
         <p
           id="statusBadge"
@@ -24,7 +24,7 @@
           aria-live="polite"
         >
           <span class="dot" aria-hidden="true"></span>
-          <span id="statusText">Connecting&hellip;</span>
+          <span id="statusText" data-i18n="status.connecting">Connecting&hellip;</span>
         </p>
         <div class="controls-group">
           <button
@@ -37,14 +37,18 @@
             <span id="modeIcon" aria-hidden="true">&#9789;</span>
           </button>
           <div class="theme-select-wrapper">
-            <label for="themeSelect" class="visually-hidden">Theme</label>
+            <label for="themeSelect" class="visually-hidden" data-i18n="app.themeLabel">Theme</label>
             <select id="themeSelect" class="theme-select"></select>
+          </div>
+          <div class="theme-select-wrapper">
+            <label for="langSelect" class="visually-hidden" data-i18n="app.languageLabel">Language</label>
+            <select id="langSelect" class="theme-select"></select>
           </div>
         </div>
       </div>
     </header>
 
-    <nav class="tabbar" aria-label="Dashboard sections">
+    <nav class="tabbar" aria-label="Dashboard sections" data-i18n-aria-label="app.sectionsLabel">
       <div class="tabbar-inner" id="tabBar" role="tablist"></div>
     </nav>
 
@@ -52,15 +56,15 @@
      depend on which section you happen to be looking at. -->
     <div class="control-strip">
       <div class="ctl-state">
-        <span id="ctlPill" class="pill pill-idle">Idle</span>
+        <span id="ctlPill" class="pill pill-idle" data-i18n="pill.idle">Idle</span>
         <span id="ctlDetail" class="ctl-detail">&ndash;</span>
       </div>
       <div class="ctl-actions">
-        <button type="button" id="btnStart" class="btn btn-primary">
+        <button type="button" id="btnStart" class="btn btn-primary" data-i18n="ctl.start">
           Start run
         </button>
-        <button type="button" id="btnStop" class="btn">Stop</button>
-        <button type="button" id="btnRestart" class="btn">Restart</button>
+        <button type="button" id="btnStop" class="btn" data-i18n="ctl.stop">Stop</button>
+        <button type="button" id="btnRestart" class="btn" data-i18n="ctl.restart">Restart</button>
         <div class="ctl-more">
           <button
             type="button"
@@ -70,6 +74,8 @@
             aria-expanded="false"
             aria-label="More actions"
             title="More actions"
+            data-i18n-aria-label="ctl.moreActions"
+            data-i18n-title="ctl.moreActions"
           >
             &#8942;
           </button>
@@ -78,10 +84,11 @@
               type="button"
               id="btnForceStop"
               class="ctl-menu-item danger"
+              data-i18n="ctl.forceStop"
             >
               Force stop (SIGKILL)
             </button>
-            <button type="button" id="btnShutdown" class="ctl-menu-item danger">
+            <button type="button" id="btnShutdown" class="ctl-menu-item danger" data-i18n="ctl.shutdown">
               Shut down control API
             </button>
           </div>
@@ -96,7 +103,7 @@
         hidden
         aria-labelledby="login-codes-heading"
       >
-        <h2 id="login-codes-heading">&#128273; Login approval needed</h2>
+        <h2 id="login-codes-heading" data-i18n="loginCodes.heading">&#128273; Login approval needed</h2>
         <div id="loginCodesList" class="login-codes-list"></div>
       </section>
       <div
@@ -114,7 +121,7 @@
         <span class="foot-separator">•</span>
         <span id="footerScriptVersion"></span>
         <span class="foot-separator">•</span>
-        <span id="footerStatus">Connecting…</span>
+        <span id="footerStatus" data-i18n="status.connecting">Connecting…</span>
     </footer>
 
     <script src="/version.js"></script>
