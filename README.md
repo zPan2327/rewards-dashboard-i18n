@@ -13,7 +13,8 @@
 - 界面文案全部抽成**独立的语言资源 + 稳定的 translation key**，业务代码里不再硬编码任何一种语言；
 - 缺少译文时**自动回退英文**，绝不会出现 `undefined` 或空白；
 - 内置 **翻译自检工具**，同步上游新版本时能一眼看出「新增了哪些待翻译文案 / 哪些 key 的占位符对不上」；
-- **除语言相关内容外，没有改动任何功能、接口或数据结构**：API 路径与请求/响应格式、鉴权逻辑、数据处理、Scheduler/Cron、Rewards Script 控制、Docker 部署方式全部保持原样。
+- **另外独立维护了一处 `lib/parser.js` 的中文日志解析补丁**，让总览页能正确解析中文日志（与本仓库的 i18n 无关）：见 [docs/parser-zh.md](./docs/parser-zh.md)；
+- **除语言相关内容、以及上面那处 `lib/parser.js` 中文日志解析补丁外，没有改动任何功能、接口或数据结构**：API 路径与请求/响应格式、鉴权逻辑、数据处理、Scheduler/Cron、Rewards Script 控制、Docker 部署方式全部保持原样；
 
 > 截图、功能列表、环境变量等完整说明见英文原版文档：[README.en.md](./README.en.md)
 
@@ -127,6 +128,7 @@ rewards-dashboard/
 - 英文模式下日期格式完全不干预（输出与改动前逐字节一致），切到中文才交给 `Intl` 本地化。
 
 完整设计说明、术语表和「如何跟随上游更新」见 **[docs/i18n.md](./docs/i18n.md)**。
+> 中文日志解析补丁的完整说明（现象 / 根因 / 改动 / 验证数据）见 **[docs/parser-zh.md](./docs/parser-zh.md)**。
 
 ### 自检工具
 
@@ -137,6 +139,22 @@ node tools/i18n-check.mjs --strict # 连无用 key 也当作错误
 ```
 
 它会报告：`ENGLISH FALLBACK`（缺中文，界面会显示英文）、`UNKNOWN t() KEY`（代码用了但字典里没有）、`PLACEHOLDER MISMATCH`（占位符对不上）、`ORPHAN`、`EMPTY VALUE`、`PLURAL VARIANT MISSING`、`UNUSED KEY`。
+
+---
+
+## 中文日志解析补丁
+
+配合 `microsoft-rewards-script` 的 `V4-china` 分支（日志已全部中文化）使用时，上游原版的 `lib/parser.js` 只认英文日志，
+会导致仪表盘「总览」页解析不出任何数据。本仓库对此打了一处补丁，让每条正则同时接受英文与中文两种写法。
+
+- 只改了 `lib/parser.js` 一个文件；
+- 跟随上游更新时，用一行 `grep` 就能确认补丁还在：
+
+```bash
+grep -c "开始处理账户" rewards-dashboard/lib/parser.js    # 输出 0 就是补丁丢了
+```
+
+完整说明见 **[docs/parser-zh.md](./docs/parser-zh.md)**。
 
 ---
 
