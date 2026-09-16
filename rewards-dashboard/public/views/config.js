@@ -905,7 +905,12 @@ function delaySubFieldHtml(groupLabel, subLabel, sub, def = null) {
   const disabled = isVersionDisabled(def);
   return `
         <div class="field field-item">
-            ${settingHelpHtml(sub.path, label, sub.desc, def)}
+            ${settingHelpHtml(
+              sub.path,
+              label,
+              settingText("field", sub.path, "desc", sub.desc),
+              def,
+            )}
             <input id="${inputId}" class="input" type="text" data-path="${U.escapeAttr(sub.path)}" aria-label="${U.escapeAttr(label)}" ${disabled ? "disabled" : ""}
                 value="${U.escapeAttr(value ?? "")}" placeholder="${U.escapeAttr(sub.placeholder || "")}">
         </div>`;
