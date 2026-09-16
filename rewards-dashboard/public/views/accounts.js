@@ -1,5 +1,6 @@
 import * as U from "../util.js";
 import { cached } from "../api.js";
+import { t, tp } from "../i18n/index.js";
 
 let accountsPayload = null;
 let rootEl = null;
@@ -19,34 +20,34 @@ const deleteArmed = new Set();
 const deleting = new Set();
 
 const SOURCE_LABELS = {
-  search: "Search",
-  bonus: "Bonus search",
-  read: "Read",
-  checkIn: "Check-in",
-  claimReward: "Claim reward",
-  claimBonus: "Claim bonus",
-  urlReward: "URL reward",
-  visualSearch: "Visual search",
-  appReward: "App reward",
-  punchcard: "Punchcard",
-  searchOnBing: "Search activity",
-  "daily-set": "Daily Set",
-  "more-promotions": "More promotions",
-  "punchcard-child": "Punchcard",
-  "punchcard-data": "Punchcard",
-  "app-data": "App data",
-  "daily-check-in": "Daily Check-In",
-  "read-to-earn": "Read to Earn",
-  "visual-search": "Visual search",
-  "visual search": "Visual search",
-  "bonus-search": "Bonus search",
-  "browser-search-api-report": "Experimental API search",
-  "search-on-bing": "Explore on Bing",
-  "url-reward": "Website reward",
-  "doEnsureStreakProtection": "Streak protection",
-  doActivateSearchPerk: "Search perk",
-  doClaimBonusPoints: "Bonus point claim",
-  doVisualSearch: "Visual search",
+  search: "accounts.source.search",
+  bonus: "accounts.source.bonus",
+  read: "accounts.source.read",
+  checkIn: "accounts.source.checkIn",
+  claimReward: "accounts.source.claimReward",
+  claimBonus: "accounts.source.claimBonus",
+  urlReward: "accounts.source.urlReward",
+  visualSearch: "accounts.source.visualSearch",
+  appReward: "accounts.source.appReward",
+  punchcard: "accounts.source.punchcard",
+  searchOnBing: "accounts.source.searchOnBing",
+  "daily-set": "accounts.source.dailySet",
+  "more-promotions": "accounts.source.morePromotions",
+  "punchcard-child": "accounts.source.punchcardChild",
+  "punchcard-data": "accounts.source.punchcardData",
+  "app-data": "accounts.source.appData",
+  "daily-check-in": "accounts.source.dailyCheckIn",
+  "read-to-earn": "accounts.source.readToEarn",
+  "visual-search": "accounts.source.visualSearchDash",
+  "visual search": "accounts.source.visualSearchPlain",
+  "bonus-search": "accounts.source.bonusSearch",
+  "browser-search-api-report": "accounts.source.experimentalApi",
+  "search-on-bing": "accounts.source.exploreOnBing",
+  "url-reward": "accounts.source.websiteReward",
+  "doEnsureStreakProtection": "accounts.source.streakProtection",
+  doActivateSearchPerk: "accounts.source.searchPerk",
+  doClaimBonusPoints: "accounts.source.bonusPointClaim",
+  doVisualSearch: "accounts.source.visualSearchTask",
 };
 
 function controlState() {
@@ -70,7 +71,10 @@ async function runAccount(account) {
   try {
     await context.api.control("start", { accountIndex: account.index });
     context.toast(
-      `Started ACCOUNT_${account.index} only (${account.email}).`,
+      t("accounts.toast.runOnlyStarted", {
+        index: account.index,
+        email: account.email,
+      }),
       "success",
     );
     context.invalidate();
@@ -92,7 +96,7 @@ async function deleteAccount(account) {
   render(rootEl);
   try {
     await context.api.deleteDashboardAccount(account.email);
-    context.toast(`Removed ${account.email} from the dashboard.`, "success");
+    context.toast(t("accounts.toast.deleted", { email: account.email }), "success");
     context.invalidate();
     await context.refresh();
   } catch (error) {
@@ -123,7 +127,10 @@ async function runSelectedAccounts() {
   try {
     await context.api.control("start", startBody);
     context.toast(
-      `Started ${selectedIndexes.length}/${configured.length} selected accounts.`,
+      t("accounts.toast.batchStarted", {
+        selected: selectedIndexes.length,
+        total: configured.length,
+      }),
       "success",
     );
     context.invalidate();
@@ -148,7 +155,10 @@ function renderBatchToolbar(root) {
   const count = selectedForBatch.size;
   const total = configured.length;
 
-  U.$("#accountsSelectedCountValue", root).textContent = `${count}/${total}`;
+  U.$("#accountsSelectedCount", root).textContent = t(
+    "accounts.batch.selectedCount",
+    { selected: count, total },
+  );
 
   const allBtn = U.$("#accountsSelectAll", root);
   allBtn.checked = total > 0 && count === total;
@@ -157,14 +167,26 @@ function renderBatchToolbar(root) {
 
   const runBtn = U.$("#accountsRunSelected", root);
   runBtn.disabled = !usable || running || batchRunning || count === 0;
-  U.$(".accounts-run-selected-label", runBtn).textContent = batchRunning ? "Starting\u2026" : "Run selected";
+  U.$(".accounts-run-selected-label", runBtn).textContent = batchRunning
+    ? t("common.starting")
+    : t("accounts.batch.runSelected");
 }
 
 function featureLabel(activity) {
   const name = cleanFeatureText(activity.activity || activity.name || "Activity");
   const legacyPromotion = /^(Daily set|More promotions):\s*["“](.+?)["”]$/i.exec(name);
   const sourceKey = name.charAt(0).toLowerCase() + name.slice(1);
-  const category = SOURCE_LABELS[name] || SOURCE_LABELS[sourceKey] || SOURCE_LABELS[name.toLowerCase()] || legacyPromotion?.[1] || name.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/[-_]/g, " ").replace(/\b\w/g, char => char.toUpperCase());
+  const labelKey =
+    SOURCE_LABELS[name] ||
+    SOURCE_LABELS[sourceKey] ||
+    SOURCE_LABELS[name.toLowerCase()];
+  const category = labelKey
+    ? t(labelKey)
+    : legacyPromotion?.[1] ||
+      name
+        .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+        .replace(/[-_]/g, " ")
+        .replace(/\b\w/g, (char) => char.toUpperCase());
   const title = cleanFeatureText(activity.title || legacyPromotion?.[2] || "");
   return cleanFeatureText(title ? `${category}: ${title}` : category);
 }
@@ -226,10 +248,12 @@ function featureChips(account, afterEarned = "") {
     const alreadyComplete = activity.status === "skipped" && /already[- ]complete|offer-state-confirmed/i.test(reason);
     if (activity.status === "confirmed" || activity.status === "completed" || alreadyComplete) {
       const points = alreadyComplete
-        ? "already complete"
+        ? t("accounts.activity.alreadyComplete")
         : activity.pointsKnown === false || activity.pointsGained == null
-        ? "points unverified"
-        : `${U.fmtSigned(Number(activity.pointsGained))} pts`;
+        ? t("accounts.activity.pointsUnverified")
+        : t("accounts.activity.points", {
+            points: U.fmtSigned(Number(activity.pointsGained)),
+          });
       addChip(earned, `${key}|${points.toLowerCase()}`, label, points, reason);
       activityLabels.add(key);
     } else if (["unconfirmed", "skipped", "failed", "unavailable"].includes(activity.status)) {
@@ -249,8 +273,17 @@ function featureChips(account, afterEarned = "") {
   if (!earned.size) {
     for (const [source, points] of Object.entries(account.live?.bySource || {})) {
       if (Number(points) <= 0) continue;
-      const label = SOURCE_LABELS[source] || source.replace(/[-_]/g, " ").replace(/\b\w/g, char => char.toUpperCase());
-      addChip(earned, `${label.toLowerCase()}|${points}`, label, `${U.fmtSigned(Number(points))} pts`);
+      const label = SOURCE_LABELS[source]
+        ? t(SOURCE_LABELS[source])
+        : source
+            .replace(/[-_]/g, " ")
+            .replace(/\b\w/g, (char) => char.toUpperCase());
+      addChip(
+        earned,
+        `${label.toLowerCase()}|${points}`,
+        label,
+        t("accounts.activity.points", { points: U.fmtSigned(Number(points)) }),
+      );
     }
   }
 
@@ -284,12 +317,12 @@ function reconciliationChips(account, activities) {
     );
     const unattributed = scriptToday - attributed;
     if (unattributed > 0) {
-      chips.push(`<span class="point-source point-source--complete" title="Points the script reported for today's runs that no activity result accounts for"><strong>Other script points</strong> ${U.escapeHtml(U.fmtSigned(unattributed))} pts</span>`);
+      chips.push(`<span class="point-source point-source--complete" title="${U.escapeAttr(t("accounts.activity.otherScriptPointsTitle"))}"><strong>${U.escapeHtml(t("accounts.activity.otherScriptPoints"))}</strong> ${U.escapeHtml(t("accounts.activity.points", { points: U.fmtSigned(unattributed) }))}</span>`);
     }
   }
   const outside = trueToday - scriptToday;
   if (outside !== 0) {
-    chips.push(`<span class="point-source point-source--complete" title="Balance change today that the script did not report (Xbox, other sources)"><strong>Outside script</strong> ${U.escapeHtml(U.fmtSigned(outside))} pts</span>`);
+    chips.push(`<span class="point-source point-source--complete" title="${U.escapeAttr(t("accounts.activity.outsideScriptTitle"))}"><strong>${U.escapeHtml(t("accounts.activity.outsideScript"))}</strong> ${U.escapeHtml(t("accounts.activity.points", { points: U.fmtSigned(outside) }))}</span>`);
   }
   return chips.join("");
 }
@@ -297,10 +330,22 @@ function reconciliationChips(account, activities) {
 function earnableChips(account) {
   const earnable = account.earnable || account.live?.earnable;
   if (!earnable) return "";
-  const labels = { mobile: "Mobile", browser: "Desktop", app: "App" };
-  return Object.entries(labels).filter(([key]) => Number(earnable[key]) > 0).map(([key, label]) =>
-    `<span class="point-source point-source--target"><strong>${label}</strong> ${U.escapeHtml(U.fmtNumber(earnable[key]))} earnable</span>`,
-  ).join("");
+  const labels = {
+    mobile: "accounts.earnable.mobile",
+    browser: "accounts.earnable.desktop",
+    app: "accounts.earnable.app",
+  };
+  return Object.entries(labels)
+    .filter(([key]) => Number(earnable[key]) > 0)
+    .map(
+      ([key, labelKey]) =>
+        `<span class="point-source point-source--target"><strong>${U.escapeHtml(
+          t(labelKey),
+        )}</strong> ${U.escapeHtml(U.fmtNumber(earnable[key]))} ${U.escapeHtml(
+          t("accounts.earnable.suffix"),
+        )}</span>`,
+    )
+    .join("");
 }
 
 function protectionPresentation(account) {
@@ -309,16 +354,29 @@ function protectionPresentation(account) {
   const remaining = account.streakProtectionRemainingDays;
   const days =
     remaining == null
-      ? "days unavailable"
-      : `${remaining} protection day${remaining === 1 ? "" : "s"} left`;
-  const state = account.streakProtectionEnabled ? "On" : "Off";
+      ? t("accounts.protection.daysUnavailable")
+      : tp("accounts.protection.daysLeft", remaining);
+  // The chip reads "180 days left" while its tooltip reads "180 protection
+  // days left" - two lengths of the same figure, kept apart on purpose so
+  // the English output matches the original dashboard exactly.
+  const daysLong =
+    remaining == null
+      ? t("accounts.protection.daysUnavailable")
+      : tp("accounts.protection.daysLeftLong", remaining);
+  const stateLabel = account.streakProtectionEnabled
+    ? t("common.on")
+    : t("common.off");
   const streak =
     account.streakCounter == null
-      ? "streak unavailable"
-      : `${U.fmtNumber(account.streakCounter)} day${account.streakCounter === 1 ? "" : "s"} current streak`;
+      ? t("accounts.protection.streakUnavailable")
+      : tp("accounts.protection.streakCurrent", account.streakCounter, {
+          count: U.fmtNumber(account.streakCounter),
+        });
 
   return {
-    state,
+    daysLong,
+    enabled: Boolean(account.streakProtectionEnabled),
+    state: stateLabel,
     days,
     streak,
     pillClass:
@@ -343,45 +401,78 @@ function detailGroups(a, protection) {
   const groups = [];
 
   groups.push([
-    "Configuration",
+    "accounts.detail.configuration",
     [
-      ["Configured in .env", a.configured ? "Yes" : "No \u2014 seen in logs only"],
-      ...(a.geoLocale ? [["Geo locale", a.geoLocale]] : []),
-      ...(a.langCode ? [["Language", a.langCode]] : []),
-      ...(a.hasTotp != null ? [["TOTP secret", a.hasTotp ? "Set" : "Not set"]] : []),
+      [
+        "accounts.kv.configuredInEnv",
+        a.configured ? t("common.yes") : t("accounts.kv.seenInLogsOnly"),
+      ],
+      ...(a.geoLocale
+        ? [["accounts.kv.geoLocale", a.geoLocale]]
+        : []),
+      ...(a.langCode ? [["accounts.kv.language", a.langCode]] : []),
+      ...(a.hasTotp != null
+        ? [
+            [
+              "accounts.kv.totpSecret",
+              a.hasTotp ? t("common.set") : t("common.notSet"),
+            ],
+          ]
+        : []),
       ...(a.hasRecoveryEmail != null
-        ? [["Recovery email", a.hasRecoveryEmail ? "Set" : "Not set"]]
+        ? [
+            [
+              "accounts.kv.recoveryEmail",
+              a.hasRecoveryEmail ? t("common.set") : t("common.notSet"),
+            ],
+          ]
         : []),
       [
-        "Proxy",
+        "accounts.kv.proxy",
         a.proxy
-          ? `${a.proxy.url}${a.proxy.port ? `:${a.proxy.port}` : ""}${a.proxy.hasCredentials ? " (authenticated)" : ""}`
-          : "None",
+          ? `${a.proxy.url}${a.proxy.port ? `:${a.proxy.port}` : ""}${a.proxy.hasCredentials ? t("accounts.kv.proxyAuthenticated") : ""}`
+          : t("common.none"),
       ],
     ],
   ]);
 
   groups.push([
-    "Streak &amp; protection",
+    "accounts.detail.streakProtection",
     [
-      ["Success streak", `${a.successStreak} run${a.successStreak === 1 ? "" : "s"}`],
+      [
+        "accounts.kv.successStreak",
+        tp("accounts.streak.runs", a.successStreak),
+      ],
       ...(protection
         ? [
           [
-            "Current streak",
+            "accounts.kv.currentStreak",
             a.streakCounter == null
-              ? "Unavailable"
-              : `${U.fmtNumber(a.streakCounter)} day${a.streakCounter === 1 ? "" : "s"}`,
+              ? t("common.unavailable")
+              : tp("accounts.streak.days", a.streakCounter, {
+                  count: U.fmtNumber(a.streakCounter),
+                }),
           ],
-          ["Streak protection", protection.state === "On" ? "Enabled" : "Disabled"],
           [
-            "Protection days remaining",
+            "accounts.kv.streakProtection",
+            protection.enabled ? t("common.enabled") : t("common.disabled"),
+          ],
+          [
+            "accounts.kv.protectionDaysRemaining",
             a.streakProtectionRemainingDays == null
-              ? "Unavailable"
-              : `${a.streakProtectionRemainingDays} day${a.streakProtectionRemainingDays === 1 ? "" : "s"}`,
+              ? t("common.unavailable")
+              : tp(
+                  "accounts.streak.days",
+                  a.streakProtectionRemainingDays,
+                ),
           ],
           ...(a.streakProtectionUpdatedAt
-            ? [["Protection status checked", U.fmtRelative(a.streakProtectionUpdatedAt)]]
+            ? [
+                [
+                  "accounts.kv.protectionChecked",
+                  U.fmtRelative(a.streakProtectionUpdatedAt),
+                ],
+              ]
             : []),
         ]
         : []),
@@ -389,26 +480,29 @@ function detailGroups(a, protection) {
   ]);
 
   groups.push([
-    "Run history",
+    "accounts.detail.runHistory",
     [
-      ["Runs recorded by the API", U.fmtNumber(a.apiRuns)],
-      ["Points collected (API history)", U.fmtSigned(a.apiTotalCollected)],
-      ["Last duration", U.fmtDuration(a.lastDurationSec)],
-      ["History points loaded", U.fmtNumber(a.historyCount)],
+      ["accounts.kv.runsRecorded", U.fmtNumber(a.apiRuns)],
+      ["accounts.kv.pointsCollected", U.fmtSigned(a.apiTotalCollected)],
+      ["accounts.kv.lastDuration", U.fmtDuration(a.lastDurationSec)],
+      ["accounts.kv.historyPointsLoaded", U.fmtNumber(a.historyCount)],
     ],
   ]);
 
   return `<div class="acc-detail-groups">${groups
     .map(
-      ([title, items]) => `
+      ([titleKey, items]) => `
         <div class="acc-detail-group">
-            <h3 class="acc-detail-group-title">${title}</h3>
+            <h3 class="acc-detail-group-title">${t(titleKey)}</h3>
             ${kv(items)}
         </div>`,
     )
     .join("")}</div>`;
 }
 
+// Mirrors overview.js's statCard icon convention (stat-icon-check /
+// -running / -alert icon-alert-active / -idle with \u2713 / \u25CF / ! / \u2013)
+// so an account's live status reads the same way here as it does there.
 function renderAccountPanel(a, live) {
   const protection = protectionPresentation(a);
   // The API's live activity list is memory-only; the log-derived one survives restarts.
@@ -443,15 +537,23 @@ function renderAccountPanel(a, live) {
 
   const runButton =
     a.configured && Number.isInteger(a.index)
-      ? `<button type="button" class="btn btn-primary btn-small acc-run-button" data-run-account="${a.index}" aria-label="Run only ACCOUNT_${a.index}" ${!usable || running || launching.has(a.index) ? "disabled" : ""
-      } title="Run only ACCOUNT_${a.index}"><i class="ph ph-play acc-run-icon" aria-hidden="true"></i><span class="acc-run-label">${launching.has(a.index) ? "Starting\u2026" : "Run only"}</span></button>`
+      ? `<button type="button" class="btn btn-primary btn-small acc-run-button" data-run-account="${a.index}" aria-label="${U.escapeAttr(
+        t("common.runOnlyTitle", { index: a.index }),
+      )}" ${!usable || running || launching.has(a.index) ? "disabled" : ""
+      } title="${U.escapeAttr(
+        t("common.runOnlyTitle", { index: a.index }),
+      )}"><i class="ph ph-play acc-run-icon" aria-hidden="true"></i><span class="acc-run-label">${launching.has(a.index) ? U.escapeHtml(t("common.starting")) : U.escapeHtml(t("common.runOnly"))}</span></button>`
       : "";
 
   const selectCheckbox =
     a.configured && Number.isInteger(a.index)
-      ? `<label class="check acc-batch-select" title="Include ACCOUNT_${a.index} in a batch run">
-          <input type="checkbox" data-select-account="${a.index}" aria-label="Select ACCOUNT_${a.index} for a batch run" ${selectedForBatch.has(a.index) ? "checked" : ""}>
-          <span>Select</span>
+      ? `<label class="check acc-batch-select" title="${U.escapeAttr(
+          t("accounts.batch.selectTitle", { index: a.index }),
+        )}">
+          <input type="checkbox" data-select-account="${a.index}" aria-label="${U.escapeAttr(
+            t("accounts.batch.selectTitle", { index: a.index }),
+          )}" ${selectedForBatch.has(a.index) ? "checked" : ""}>
+          <span>${U.escapeHtml(t("common.select"))}</span>
         </label>`
       : "";
 
@@ -462,15 +564,15 @@ function renderAccountPanel(a, live) {
   const deleteBlocked = displayStatus === "running" || launching.has(a.index);
   const deleteButton = deleteArmed.has(a.key)
     ? `<span class="acc-delete-confirm">
-        <button type="button" class="btn btn-icon btn-small" data-cancel-delete="${U.escapeAttr(a.key)}" aria-label="Cancel delete" ${isDeleting ? "disabled" : ""} title="Cancel delete"><i class="ph ph-x" aria-hidden="true"></i></button>
-        <button type="button" class="btn btn-danger btn-icon btn-small" data-confirm-delete="${U.escapeAttr(a.key)}" aria-label="Confirm delete account" ${isDeleting ? "disabled" : ""} title="Permanently remove this account and its history from the dashboard">
+        <button type="button" class="btn btn-icon btn-small" data-cancel-delete="${U.escapeAttr(a.key)}" aria-label="${U.escapeAttr(t("accounts.delete.cancel"))}" ${isDeleting ? "disabled" : ""} title="${U.escapeAttr(t("accounts.delete.cancel"))}"><i class="ph ph-x" aria-hidden="true"></i></button>
+        <button type="button" class="btn btn-danger btn-icon btn-small" data-confirm-delete="${U.escapeAttr(a.key)}" aria-label="${U.escapeAttr(t("accounts.delete.confirm"))}" ${isDeleting ? "disabled" : ""} title="${U.escapeAttr(t("accounts.delete.confirmTitle"))}">
           <i class="ph ph-trash" aria-hidden="true"></i>
         </button>
       </span>`
-    : `<button type="button" class="btn btn-danger btn-icon btn-small" data-arm-delete="${U.escapeAttr(a.key)}" aria-label="Delete account" ${deleteBlocked ? "disabled" : ""} title="${deleteBlocked ? "The account must be idle to delete it" : "Remove this account and its history from the dashboard"}"><i class="ph ph-trash" aria-hidden="true"></i></button>`;
+    : `<button type="button" class="btn btn-danger btn-icon btn-small" data-arm-delete="${U.escapeAttr(a.key)}" aria-label="${U.escapeAttr(t("accounts.delete.arm"))}" ${deleteBlocked ? "disabled" : ""} title="${U.escapeAttr(deleteBlocked ? t("accounts.delete.blocked") : t("accounts.delete.armTitle"))}"><i class="ph ph-trash" aria-hidden="true"></i></button>`;
 
   const protectionChip = protection
-    ? `<span class="account-rail-icon ${protection.pillClass}" role="img" aria-label="Streak protection ${protection.state.toLowerCase()}" title="Streak protection is ${protection.state.toLowerCase()}; ${U.escapeAttr(protection.days)}"><i class="ph ${a.streakProtectionEnabled ? "ph-shield-check" : "ph-shield"}" aria-hidden="true"></i></span>`
+    ? `<span class="account-rail-icon ${protection.pillClass}" role="img" aria-label="${U.escapeAttr(t("accounts.protection.chip", { state: protection.state, days: protection.days }))}" title="${U.escapeAttr(t(protection.enabled ? "accounts.protection.chipTitleOn" : "accounts.protection.chipTitleOff", { streak: protection.streak, days: protection.daysLong }))}"><i class="ph ${a.streakProtectionEnabled ? "ph-shield-check" : "ph-shield"}" aria-hidden="true"></i></span>`
     : "";
   const status = U.pillParts(statusKey);
   const statusIcons = {
@@ -492,7 +594,7 @@ function renderAccountPanel(a, live) {
     idle: "ph-minus-circle",
   };
   const statusRail = `
-    <aside class="account-status-rail" aria-label="Account status">
+    <aside class="account-status-rail" aria-label="${U.escapeAttr(t("accounts.statusRail"))}">
       <span class="account-rail-icon ${status.cls}" role="img" aria-label="${U.escapeAttr(status.label)}" title="${U.escapeAttr(status.label)}"><i class="ph ${statusIcons[statusKey] || statusIcons.idle}" aria-hidden="true"></i></span>
     </aside>`;
   const featureChipsHtml = [
@@ -508,18 +610,24 @@ function renderAccountPanel(a, live) {
     earnableChips({ ...(live || {}), earnable: live?.earnable || a.earnable }),
   ].filter(Boolean).join("");
   const counts = a.activityCounts;
-  const countsTitle = counts
-    ? "Last run: " + [
-      ["completed", counts.completed],
-      ["incomplete", counts.incomplete],
-      ["unavailable", counts.unavailable],
-      ["not applicable", counts.notApplicable],
-    ].filter(([, n]) => n != null).map(([label, n]) => `${n} ${label}`).join(", ")
+  const countsParts = counts
+    ? [
+        ["accounts.activity.completed", counts.completed],
+        ["accounts.activity.incomplete", counts.incomplete],
+        ["accounts.activity.unavailable", counts.unavailable],
+        ["accounts.activity.notApplicable", counts.notApplicable],
+      ]
+        .filter(([, n]) => n != null)
+        .map(([key, n]) => t(key, { count: n }))
+        .join(", ")
+    : "";
+  const countsTitle = countsParts
+    ? t("accounts.activity.countsTitle", { counts: countsParts })
     : "";
   const featuresOpen = expandedFeatures.has(a.key);
   const featureDetails = `<details class="account-feature-details" data-feature-details="${U.escapeAttr(a.key)}" ${featuresOpen ? "open" : ""}>
-      <summary${countsTitle ? ` title="${U.escapeAttr(countsTitle)}"` : ""}><span class="acc-detail-toggle account-feature-caret" aria-hidden="true"><i class="ph ph-caret-right"></i></span><span>Activity Status</span></summary>
-      <div class="account-feature-chips">${featureChipsHtml || '<span class="point-source">No feature results reported</span>'}</div>
+      <summary${countsTitle ? ` title="${U.escapeAttr(countsTitle)}"` : ""}><span class="acc-detail-toggle account-feature-caret" aria-hidden="true"><i class="ph ph-caret-right"></i></span><span>${U.escapeHtml(t("accounts.activity.heading"))}</span></summary>
+      <div class="account-feature-chips">${featureChipsHtml || `<span class="point-source">${U.escapeHtml(t("accounts.activity.empty"))}</span>`}</div>
     </details>`;
 
   return `
@@ -529,11 +637,11 @@ function renderAccountPanel(a, live) {
         <div class="account-card-main">
           <div class="panel-head">
             <h2>
-                <button type="button" class="acc-detail-toggle" data-toggle-details="${U.escapeAttr(a.key)}" aria-expanded="${isExpanded}" aria-controls="${detailsId}" title="${isExpanded ? "Collapse details" : "Expand details"}"><i class="ph ph-caret-right" aria-hidden="true"></i></button>
+                <button type="button" class="acc-detail-toggle" data-toggle-details="${U.escapeAttr(a.key)}" aria-expanded="${isExpanded}" aria-controls="${detailsId}" title="${U.escapeAttr(isExpanded ? t("accounts.collapseDetails") : t("accounts.expandDetails"))}"><i class="ph ph-caret-right" aria-hidden="true"></i></button>
               ${U.escapeHtml(a.email)}
             </h2>
             ${a.index != null ? `<span class="tag-mini acc-tag-account-id">ACCOUNT_${a.index}</span>` : ""}
-            ${a.configured ? "" : '<span class="tag-mini">unconfigured</span>'}
+            ${a.configured ? "" : `<span class="tag-mini">${U.escapeHtml(t("common.unconfigured"))}</span>`}
           </div>
         </div>
         <span class="acc-detail-actions">${selectCheckbox}${runButton}</span>
@@ -542,7 +650,7 @@ function renderAccountPanel(a, live) {
         ${detailGroups(a, protection)}
       </div>
       <div class="account-secondary-row">
-        <aside class="account-protection-rail" aria-label="Streak protection">${protectionChip}</aside>
+        <aside class="account-protection-rail" aria-label="${U.escapeAttr(t("accounts.protection.railLabel"))}">${protectionChip}</aside>
         ${featureDetails}
         <div class="acc-feature-actions">${deleteButton}</div>
       </div>
@@ -561,7 +669,7 @@ function render(root) {
   }
 
   if (!accounts.length) {
-    container.innerHTML = '<p class="empty-note" style="padding:1.25rem">No accounts configured or observed yet.</p>';
+    container.innerHTML = `<p class="empty-note" style="padding:1.25rem">${U.escapeHtml(t("common.noAccountsConfigured"))}</p>`;
     renderBatchToolbar(root);
     return;
   }
@@ -632,7 +740,7 @@ function render(root) {
 
 export default {
   id: "accounts",
-  label: "Accounts",
+  labelKey: "tab.accounts",
   interval: 10000,
 
   mount(root, ctx) {
@@ -642,21 +750,23 @@ export default {
       <p class="notice notice--warn" id="accountsError" hidden></p>
       <div class="panel batch-select-box" id="accountsBatchToolbar">
           <div class="batch-select-header">
-              <h2 class="batch-select-title">Batch run</h2>
+              <h2 class="batch-select-title" data-i18n="accounts.batch.title">Batch run</h2>
               <div class="batch-select-controls">
                   <label class="check">
                       <input type="checkbox" id="accountsSelectAll">
-                      <span>Select all</span>
+                      <span data-i18n="accounts.batch.selectAll">Select all</span>
                   </label>
-                  <span class="hint" id="accountsSelectedCount"><span id="accountsSelectedCountValue">0/0</span><span class="accounts-selected-label"> selected</span></span>
-                  <button type="button" class="btn btn-primary btn-small accounts-run-selected" id="accountsRunSelected" aria-label="Run selected accounts" title="Run selected accounts" disabled><i class="ph ph-play accounts-run-selected-icon" aria-hidden="true"></i><span class="accounts-run-selected-label">Run selected</span></button>
+                  <span class="hint" id="accountsSelectedCount">${U.escapeHtml(
+                    t("accounts.batch.selectedCount", { selected: 0, total: 0 }),
+                  )}</span>
+                  <button type="button" class="btn btn-primary btn-small accounts-run-selected" id="accountsRunSelected" aria-label="Run selected accounts" title="Run selected accounts" data-i18n-aria-label="accounts.batch.runSelected" data-i18n-title="accounts.batch.runSelected" disabled><i class="ph ph-play accounts-run-selected-icon" aria-hidden="true"></i><span class="accounts-run-selected-label" data-i18n="accounts.batch.runSelected">Run selected</span></button>
               </div>
           </div>
       </div>
       <div id="accountsContainer">
-          <p class="empty-note" style="padding:1.25rem">Loading accounts configuration details&hellip;</p>
+          <p class="empty-note" style="padding:1.25rem" data-i18n="accounts.loadingDetails">Loading accounts configuration details…</p>
       </div>
-      <p class="hint" style="margin-top: 1.5rem;">Accounts are configured in the bot&rsquo;s <code>.env</code> (<code>ACCOUNT_N_*</code>).
+      <p class="hint" style="margin-top: 1.5rem;" data-i18n-html="accounts.footnote">Accounts are configured in the bot&rsquo;s <code>.env</code> (<code>ACCOUNT_N_*</code>).
       The control API exposes full local email addresses but never sends passwords, recovery addresses, TOTP secrets, or proxy credentials.</p>
     `;
     mounted = true;

@@ -1,3 +1,5 @@
+import { dateLocale, t } from "./i18n/index.js";
+
 export function escapeHtml(str) {
   if (str == null) return "";
   return String(str)
@@ -43,7 +45,7 @@ export function fmtDateTime(iso) {
   if (!iso) return DASH;
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return DASH;
-  return d.toLocaleString(undefined, {
+  return d.toLocaleString(dateLocale() || undefined, {
     month: "short",
     day: "numeric",
     hour: "numeric",
@@ -55,7 +57,8 @@ export function fmtTime(iso) {
   if (!iso) return DASH;
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return DASH;
-  const parts = new Intl.DateTimeFormat("en-US", {
+  const locale = dateLocale() || "en-US";
+  const options = {
     timeZone: timeZone || undefined,
     year: "numeric",
     month: "short",
@@ -64,7 +67,9 @@ export function fmtTime(iso) {
     minute: "2-digit",
     second: "2-digit",
     hour12: true,
-  }).formatToParts(d);
+  };
+  if (locale !== "en-US") return d.toLocaleString(locale, options);
+  const parts = new Intl.DateTimeFormat("en-US", options).formatToParts(d);
   const get = (type) => parts.find((part) => part.type === type)?.value || "";
   const date = `${get("month")} ${get("day")}, ${get("year")}`;
   const clock = `${get("hour")}:${get("minute")}:${get("second")} ${get("dayPeriod").toLowerCase()}`;
@@ -76,26 +81,29 @@ export function fmtRelative(iso) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return DASH;
   const mins = Math.round((Date.now() - d.getTime()) / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return t("time.justNow");
+  if (mins < 60) return t("time.minutesAgo", { minutes: mins });
   const hours = Math.round(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.round(hours / 24)}d ago`;
+  if (hours < 24) return t("time.hoursAgo", { hours });
+  return t("time.daysAgo", { days: Math.round(hours / 24) });
 }
 
 export function fmtDuration(sec) {
   if (sec == null || Number.isNaN(sec)) return DASH;
-  if (sec < 60) return `${Math.round(sec)}s`;
+  if (sec < 60) return t("time.duration.seconds", { seconds: Math.round(sec) });
   const m = Math.floor(sec / 60);
   const s = Math.round(sec % 60);
-  if (m < 60) return s ? `${m}m ${s}s` : `${m}m`;
+  if (m < 60)
+    return s
+      ? t("time.duration.minutesSeconds", { minutes: m, seconds: s })
+      : t("time.duration.minutes", { minutes: m });
   const h = Math.floor(m / 60);
-  return `${h}h ${m % 60}m`;
+  return t("time.duration.hoursMinutes", { hours: h, minutes: m % 60 });
 }
 
 export function fmtUptime(sec) {
   if (sec == null) return DASH;
-  if (sec < 60) return `${Math.round(sec)}s`;
+  if (sec < 60) return t("time.duration.seconds", { seconds: Math.round(sec) });
   return fmtDuration(sec);
 }
 
@@ -143,7 +151,10 @@ export function isoWeekStartKey(year, month, day) {
 
 export function localDateLabel(key, options) {
   const [y, m, d] = key.split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString(undefined, options);
+  return new Date(y, m - 1, d).toLocaleDateString(
+    dateLocale() || undefined,
+    options,
+  );
 }
 
 // Buckets history rows by day, using the TRUE point movement detected
@@ -307,23 +318,26 @@ export function debounce(fn, ms = 250) {
   };
 }
 
+// Status -> [pill class, dictionary key]. The label is resolved through t()
+// on every call so it follows a runtime language switch, and an unknown
+// status still falls back to "idle".
 const PILLS = {
-  full: ["pill-success", "Complete"],
-  success: ["pill-success", "Success"],
-  partial: ["pill-warn", "Partial"],
-  skipped: ["pill-idle", "Skipped"],
-  done: ["pill-success", "Done"],
-  error: ["pill-error", "Error"],
-  crashed: ["pill-error", "Crashed"],
-  interrupted: ["pill-warn", "Interrupted"],
-  stopped: ["pill-warn", "Stopped"],
-  stalled: ["pill-warn", "Stalled"],
-  running: ["pill-running", "Running"],
-  starting: ["pill-running", "Starting"],
-  stopping: ["pill-warn", "Stopping"],
-  pending: ["pill-pending", "Pending"],
-  sleeping: ["pill-pending", "Sleeping"],
-  idle: ["pill-idle", "Idle"],
+  full: ["pill-success", "pill.full"],
+  success: ["pill-success", "pill.success"],
+  partial: ["pill-warn", "pill.partial"],
+  skipped: ["pill-idle", "pill.skipped"],
+  done: ["pill-success", "pill.done"],
+  error: ["pill-error", "pill.error"],
+  crashed: ["pill-error", "pill.crashed"],
+  interrupted: ["pill-warn", "pill.interrupted"],
+  stopped: ["pill-warn", "pill.stopped"],
+  stalled: ["pill-warn", "pill.stalled"],
+  running: ["pill-running", "pill.running"],
+  starting: ["pill-running", "pill.starting"],
+  stopping: ["pill-warn", "pill.stopping"],
+  pending: ["pill-pending", "pill.pending"],
+  sleeping: ["pill-pending", "pill.sleeping"],
+  idle: ["pill-idle", "pill.idle"],
 };
 
 const STATUS_ALIASES = {
@@ -355,12 +369,12 @@ export function accountDisplayStatus(account, runAccount, runActive = false) {
 
 export function pillParts(status) {
   const normalized = STATUS_ALIASES[status] || status;
-  const [cls, label] = PILLS[normalized] || PILLS.idle;
-  return { cls, label };
+  const [cls, key] = PILLS[normalized] || PILLS.idle;
+  return { cls, label: t(key) };
 }
 
 export function statusPill(status, title = "") {
   const { cls, label } = pillParts(status);
   const attr = title ? ` title="${escapeAttr(title)}"` : "";
-  return `<span class="pill ${cls}"${attr}>${label}</span>`;
+  return `<span class="pill ${cls}"${attr}>${escapeHtml(label)}</span>`;
 }

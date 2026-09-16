@@ -6,7 +6,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node --env-file-if-exists=.env server.js",
-    "test": "node --test \"test/*.test.js\""
+    "test": "node --test \"test/*.test.js\"",
+    "i18n:check": "node tools/i18n-check.mjs"
   },
   "engines": {
     "node": ">=22.13.0"

@@ -1,3 +1,5 @@
+import { t } from "./i18n/index.js";
+
 async function call(method, path, body) {
   const opts = { method, headers: { Accept: "application/json" } };
   if (body !== undefined) {
@@ -9,7 +11,7 @@ async function call(method, path, body) {
   try {
     res = await fetch(path, opts);
   } catch {
-    throw new Error("Dashboard server unreachable");
+    throw new Error(t("api.unreachable"));
   }
 
   const text = await res.text();

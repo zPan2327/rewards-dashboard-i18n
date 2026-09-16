@@ -1,6 +1,8 @@
 import * as U from "../util.js";
 import { api } from "../api.js";
 
+import { applyI18n, hasKey, t, tp } from "../i18n/index.js";
+
 const REDACTED = "***REDACTED***";
 
 let rootEl = null;
@@ -25,7 +27,7 @@ const isPlainObject = (v) =>
 // setting.
 const TOGGLE_GROUPS = [
   {
-    title: "Core",
+    title: "config.group.core",
     fields: {
       headless: {
         label: "Headless browser",
@@ -64,7 +66,7 @@ const TOGGLE_GROUPS = [
     },
   },
   {
-    title: "Workers",
+    title: "config.group.workers",
     fields: {
       "workers.doDailySet": {
         label: "Daily set",
@@ -117,7 +119,7 @@ const TOGGLE_GROUPS = [
     },
   },
   {
-    title: "Activities",
+    title: "config.group.activities",
     fields: {
       "activities.urlReward": {
         label: "URL reward",
@@ -130,7 +132,7 @@ const TOGGLE_GROUPS = [
     },
   },
   {
-    title: "Search settings",
+    title: "config.group.searchSettings",
     fields: {
       "searchSettings.scrollRandomResults": {
         label: "Scroll random results",
@@ -160,7 +162,7 @@ const TOGGLE_GROUPS = [
     },
   },
   {
-    title: "Experimental",
+    title: "config.group.experimental",
     fields: {
       "experimental.apiSearch": {
         label: "API search",
@@ -188,7 +190,7 @@ const TOGGLE_GROUPS = [
     },
   },
   {
-    title: "Logging",
+    title: "config.group.logging",
     fields: {
       debugLogs: {
         label: "Debug logs",
@@ -201,7 +203,7 @@ const TOGGLE_GROUPS = [
     },
   },
   {
-    title: "Proxy",
+    title: "config.group.proxy",
     fields: {
       "proxy.queryEngine": {
         label: "Proxy query engine requests",
@@ -214,7 +216,7 @@ const TOGGLE_GROUPS = [
     },
   },
   {
-    title: "Webhooks",
+    title: "config.group.webhooks",
     fields: {
       "webhook.discord.enabled": {
         label: "Discord webhook",
@@ -242,7 +244,7 @@ for (const group of TOGGLE_GROUPS) {
     TOGGLE_META[path] = { ...meta, group: group.title };
   }
 }
-const OTHER_GROUP_TITLE = "Other settings";
+const OTHER_GROUP_TITLE = "config.group.other";
 const TOGGLE_GROUP_ORDER = [
   ...TOGGLE_GROUPS.map((g) => g.title),
   OTHER_GROUP_TITLE,
@@ -254,8 +256,8 @@ function majorVersion() {
 }
 
 function compatibilityLabel(def) {
-  if (def?.v5Only) return "v5 only";
-  if (def?.v4Only) return "v4 only";
+  if (def?.v5Only) return t("config.versionTag.v5Only");
+  if (def?.v4Only) return t("config.versionTag.v4Only");
   return "";
 }
 
@@ -283,6 +285,42 @@ function fallbackLabel(path) {
   return spaced.charAt(0).toUpperCase() + spaced.slice(1).toLowerCase();
 }
 
+// Label/description/hint text for a setting lives in the dictionaries under
+// config.toggle.<path>.* (booleans) or config.field.<path>.* (typed fields).
+// A setting a *newer* upstream script adds is not in any dictionary yet, so
+// it keeps rendering the English text shipped with this build rather than a
+// raw key - which also means upstream syncs only ever need additive changes.
+function settingText(scope, path, suffix, fallback) {
+  const key = `config.${scope}.${path}.${suffix}`;
+  return hasKey(key) ? t(key) : fallback;
+}
+
+function toggleLabel(path, fallback) {
+  return settingText("toggle", path, "label", fallback);
+}
+
+function toggleDesc(path, fallback) {
+  return settingText("toggle", path, "desc", fallback || "");
+}
+
+function fieldLabel(path, fallback) {
+  return settingText("field", path, "label", fallback);
+}
+
+function fieldDesc(path, fallback) {
+  return settingText("field", path, "desc", fallback);
+}
+
+// Select options are stored as value/label pairs; the localized label is
+// looked up by value so an upstream option keeps working untranslated.
+function optionLabel(option) {
+  const name = /^\d$/.test(String(option.value))
+    ? `priority${option.value}`
+    : String(option.value);
+  const key = `config.option.${name}`;
+  return hasKey(key) ? t(key) : option.label;
+}
+
 // Non-boolean settings a human would actually want a real control for
 // (text/number/select/tag-list), grouped the same way as TOGGLE_GROUPS.
 // Unlike the toggles, this list is NOT auto-discovered from config.json -
@@ -292,7 +330,7 @@ function fallbackLabel(path) {
 // verbatim from the README's "Configuration Options" tables.
 const FIELD_GROUPS = [
   {
-    title: "Core",
+    title: "config.group.core",
     fields: {
       sessionPath: {
         kind: "text",
@@ -356,7 +394,7 @@ const FIELD_GROUPS = [
     },
   },
   {
-    title: "Search settings",
+    title: "config.group.searchSettings",
     fields: {
       "searchSettings.maxBonusSearches": {
         kind: "number",
@@ -419,7 +457,7 @@ const FIELD_GROUPS = [
     },
   },
   {
-    title: "Logging",
+    title: "config.group.logging",
     fields: {
       "consoleLogFilter.mode": {
         kind: "select",
@@ -453,7 +491,7 @@ const FIELD_GROUPS = [
     },
   },
   {
-    title: "Webhooks",
+    title: "config.group.webhooks",
     fields: {
       "webhook.discord.url": {
         kind: "text",
@@ -664,7 +702,7 @@ function settingHelpHtml(path, label, desc, meta = null, className = "") {
   const labelHtml = `${U.escapeHtml(label)}${compatibilityBadge(meta)}`;
   if (!desc) return `<span class="cfg-help-label">${labelHtml}</span>`;
   return `
-        <button type="button" class="cfg-help-toggle ${className}" data-toggle-help aria-expanded="false" aria-controls="${helpId}" title="Show setting description">
+        <button type="button" class="cfg-help-toggle ${className}" data-toggle-help aria-expanded="false" aria-controls="${helpId}" title="${U.escapeAttr(t("config.helpShow"))}">
             <span class="cfg-help-label">${labelHtml}</span>
             <i class="ph ph-info" aria-hidden="true"></i>
         </button>
@@ -673,8 +711,10 @@ function settingHelpHtml(path, label, desc, meta = null, className = "") {
 
 function switchHtml(b) {
   const meta = TOGGLE_META[b.path];
-  const label = meta?.label || fallbackLabel(b.path);
-  const desc = meta?.desc || "";
+  const label = meta?.label
+    ? toggleLabel(b.path, meta.label)
+    : fallbackLabel(b.path);
+  const desc = toggleDesc(b.path, meta?.desc, meta);
   const disabled = isVersionDisabled(meta);
   return `
         <div class="switch${disabled ? " switch-disabled" : ""}">
@@ -717,9 +757,9 @@ function renderSettings() {
       const fields = FIELD_GROUPS_BY_TITLE.get(title);
       return `
         <div class="acc-detail-group">
-            <h3 class="acc-detail-group-title">${U.escapeHtml(title)}</h3>
+            <h3 class="acc-detail-group-title">${U.escapeHtml(t(title))}</h3>
             ${toggles.length ? `<div class="switch-grid">${toggles.map(switchHtml).join("")}</div>` : ""}
-            ${title === "Webhooks" ? webhookFilterTipHtml() : ""}
+            ${title === "config.group.webhooks" ? webhookFilterTipHtml() : ""}
             ${fields
           ? `<div class="field-grid">${Object.entries(fields)
             .map(([path, def]) => fieldHtml(path, def))
@@ -730,6 +770,7 @@ function renderSettings() {
     })
     .join("");
 
+  applyI18n(host); // resolve the bindings inside the block just rendered
   bindToggleEvents(host);
   bindFieldEvents(host);
 }
@@ -740,7 +781,7 @@ function bindToggleEvents(host) {
       const expanded = button.getAttribute("aria-expanded") === "true";
       button.setAttribute("aria-expanded", String(!expanded));
       button.nextElementSibling.hidden = expanded;
-      button.title = expanded ? "Show setting description" : "Hide setting description";
+      button.title = expanded ? t("config.helpShow") : t("config.helpHide");
     }),
   );
 
@@ -772,18 +813,27 @@ function textFieldHtml(path, def) {
   const value = locked ? "" : (raw ?? "");
   const inputId = `cfg-input-${path.replace(/[^a-zA-Z0-9]/g, "-")}`;
   const placeholder = locked
-    ? "Hidden \u2014 use Reveal secrets above to edit"
+    ? t("config.hiddenPlaceholder")
     : def.placeholder || "";
   return `
         <div class="field field-item">
-            ${settingHelpHtml(path, def.label, def.desc, def)}
-            <input id="${inputId}" class="input" type="${type}" data-path="${U.escapeAttr(path)}" aria-label="${U.escapeAttr(def.label)}"
+            ${settingHelpHtml(
+              path,
+              fieldLabel(path, def.label),
+              fieldDesc(path, def.desc),
+              def,
+            )}
+            <input id="${inputId}" class="input" type="${type}" data-path="${U.escapeAttr(path)}" aria-label="${U.escapeAttr(fieldLabel(path, def.label))}"
                 value="${U.escapeAttr(String(value))}"
                 placeholder="${U.escapeAttr(placeholder)}"
                 ${disabled ? "disabled" : ""}
                 ${def.min != null ? `min="${def.min}"` : ""}
                 ${def.step != null ? `step="${def.step}"` : ""}>
-            ${locked ? '<span class="field-locked">\uD83D\uDD12 Hidden until secrets are revealed</span>' : ""}
+            ${locked
+              ? `<span class="field-locked">${U.escapeHtml(
+                  t("config.hiddenNote"),
+                )}</span>`
+              : ""}
         </div>`;
 }
 
@@ -794,12 +844,17 @@ function selectFieldHtml(path, def) {
   const inputId = `cfg-input-${path.replace(/[^a-zA-Z0-9]/g, "-")}`;
   return `
         <div class="field field-item">
-            ${settingHelpHtml(path, def.label, def.desc, def)}
-            <select id="${inputId}" class="input" data-path="${U.escapeAttr(path)}" aria-label="${U.escapeAttr(def.label)}" ${disabled ? "disabled" : ""} ${def.numeric ? 'data-numeric="1"' : ""}>
+            ${settingHelpHtml(
+              path,
+              fieldLabel(path, def.label),
+              fieldDesc(path, def.desc),
+              def,
+            )}
+            <select id="${inputId}" class="input" data-path="${U.escapeAttr(path)}" aria-label="${U.escapeAttr(fieldLabel(path, def.label))}" ${disabled ? "disabled" : ""} ${def.numeric ? 'data-numeric="1"' : ""}>
                 ${def.options
       .map(
         (o) =>
-          `<option value="${U.escapeAttr(o.value)}" ${String(o.value) === current ? "selected" : ""}>${U.escapeHtml(o.label)}</option>`,
+          `<option value="${U.escapeAttr(o.value)}" ${String(o.value) === current ? "selected" : ""}>${U.escapeHtml(optionLabel(o))}</option>`,
       )
       .join("")}
             </select>
@@ -812,25 +867,34 @@ function tagsFieldHtml(path, def) {
   const dlId = def.suggestions ? listId(path) : null;
   return `
         <div class="field field-item field-tags" data-tags-path="${U.escapeAttr(path)}">
-            ${settingHelpHtml(path, def.label, def.desc, def)}
+            ${settingHelpHtml(
+              path,
+              fieldLabel(path, def.label),
+              fieldDesc(path, def.desc),
+              def,
+            )}
             <div class="tag-chips">
                 ${items
       .map(
         (item, i) => `
                     <span class="tag-chip${def.mono ? " tag-chip--mono" : ""}">
                         <span class="tag-chip-text">${U.escapeHtml(String(item))}</span>
-                        <button type="button" class="tag-chip-remove" data-tag-remove="${i}" aria-label="Remove ${U.escapeAttr(String(item))}">&times;</button>
+                        <button type="button" class="tag-chip-remove" data-tag-remove="${i}" aria-label="${U.escapeAttr(t("common.removeItem", { item: String(item) }))}">&times;</button>
                     </span>`,
       )
       .join("")}
-                ${!items.length ? '<span class="empty-note tag-empty">None set</span>' : ""}
+                ${!items.length
+                  ? `<span class="empty-note tag-empty">${U.escapeHtml(
+                      t("common.noneSet"),
+                    )}</span>`
+                  : ""}
             </div>
             <div class="tag-add">
-                <input class="input tag-add-input" type="text" aria-label="Add ${U.escapeAttr(def.label)}" placeholder="${U.escapeAttr(def.placeholder || "Add value\u2026")}" ${dlId ? `list="${dlId}"` : ""}>
-                <button type="button" class="btn btn-small tag-add-btn">Add</button>
+                <input class="input tag-add-input" type="text" aria-label="${U.escapeAttr(t("config.addItem", { label: fieldLabel(path, def.label) }))}" placeholder="${U.escapeAttr(def.placeholder || t("config.tagsPlaceholder"))}" ${dlId ? `list="${dlId}"` : ""}>
+                <button type="button" class="btn btn-small tag-add-btn">${U.escapeHtml(t("common.add"))}</button>
             </div>
             ${dlId ? `<datalist id="${dlId}">${def.suggestions.map((s) => `<option value="${U.escapeAttr(s)}">`).join("")}</datalist>` : ""}
-            ${def.hint ? `<span class="field-hint">${U.escapeHtml(def.hint)}</span>` : ""}
+            ${def.hint ? `<span class="field-hint">${U.escapeHtml(settingText("field", path, "hint", def.hint))}</span>` : ""}
         </div>`;
 }
 
@@ -858,8 +922,18 @@ function fieldHtml(path, def) {
       return tagsFieldHtml(path, def);
     case "delay":
       return (
-        delaySubFieldHtml(def.label, "min", def.min, def) +
-        delaySubFieldHtml(def.label, "max", def.max, def)
+        delaySubFieldHtml(
+          fieldLabel(path, def.label),
+          t("config.delay.min"),
+          def.min,
+          def,
+        ) +
+        delaySubFieldHtml(
+          fieldLabel(path, def.label),
+          t("config.delay.max"),
+          def.max,
+          def,
+        )
       );
     default:
       return "";
@@ -869,14 +943,10 @@ function fieldHtml(path, def) {
 function webhookFilterTipHtml() {
   return `
         <p class="notice notice--info cfg-tip">
-            Set <strong>Webhook log filter</strong> to <em>on</em> before enabling a push-notification
-            webhook like ntfy, or you&rsquo;ll get a notification for every log line, including debug noise.
-            With it enabled, only account start, 2FA codes, and account completion summaries are delivered.
-            Use whitelist mode and the &ldquo;Webhook filter keywords&rdquo; field below to customize exactly
-            which notifications you receive.
+            ${t("config.webhookTip")}
             <span class="notice-actions">
-                <button type="button" id="cfgWebhookFilterTipBtn" class="btn btn-primary btn-small">Apply recommended filter</button>
-                <span class="notice-sub">whitelist &middot; starting account, select number, collected</span>
+                <button type="button" id="cfgWebhookFilterTipBtn" class="btn btn-primary btn-small" data-i18n="config.applyRecommended">Apply recommended filter</button>
+                <span class="notice-sub" data-i18n="config.webhookTipSub">whitelist &middot; starting account, select number, collected</span>
             </span>
         </p>`;
 }
@@ -897,7 +967,7 @@ function bindFieldEvents(host) {
       }
       const value = isNumber ? Number(next) : next;
       if (isNumber && Number.isNaN(value)) {
-        U.toast("Enter a valid number.", "error");
+        U.toast(t("config.toast.invalidNumber"), "error");
         input.value = original;
         return;
       }
@@ -974,7 +1044,7 @@ function bindFieldEvents(host) {
         ? [...getDeep(loaded, path)]
         : [];
       if (items.includes(value)) {
-        U.toast("Already in the list.", "info");
+        U.toast(t("config.toast.duplicateTag"), "info");
         input.value = "";
         return;
       }
@@ -993,15 +1063,18 @@ function bindFieldEvents(host) {
   const tipBtn = U.$("#cfgWebhookFilterTipBtn", host);
   tipBtn?.addEventListener("click", async () => {
     tipBtn.disabled = true;
-    tipBtn.textContent = "Applying\u2026";
+    tipBtn.textContent = t("config.applying");
     try {
-      await save(RECOMMENDED_WEBHOOK_FILTER, "recommended webhook filter");
+      await save(
+        RECOMMENDED_WEBHOOK_FILTER,
+        t("config.saveDesc.recommendedFilter"),
+      );
       afterSave(RECOMMENDED_WEBHOOK_FILTER);
     } catch {
       // save() already explained why
     } finally {
       tipBtn.disabled = false;
-      tipBtn.textContent = "Apply recommended filter";
+      tipBtn.textContent = t("config.applyRecommended");
     }
   });
 }
@@ -1010,15 +1083,16 @@ function explainConfigError(e) {
   if (e.status === 403) {
     return {
       kind: "warn",
-      message:
-        "Config writes are disabled on the control API. Set <code>API_ALLOW_CONFIG_WRITE=true</code> in the bot&rsquo;s environment and restart it.",
+      message: t("config.error.writeDisabled"),
     };
   }
   if (e.status === 422) {
     const errors = (e.body && e.body.errors) || [];
     return {
       kind: "error",
-      message: `<strong>The bot rejected this config:</strong><ul>${errors.map((x) => `<li>${U.escapeHtml(x)}</li>`).join("")}</ul>`,
+      message: `<strong>${U.escapeHtml(
+        t("config.error.rejected"),
+      )}</strong><ul>${errors.map((x) => `<li>${U.escapeHtml(x)}</li>`).join("")}</ul>`,
     };
   }
   return { kind: "error", message: U.escapeHtml(e.message) };
@@ -1028,7 +1102,7 @@ async function save(patch, description) {
   try {
     const res = await api.patchConfig(patch);
     showNotice("cfgNotice", "");
-    U.toast(`Saved: ${description}. Applies on the next run.`, "success");
+    U.toast(t("config.toast.saved", { description }), "success");
     return res;
   } catch (e) {
     const { kind, message } = explainConfigError(e);
@@ -1059,26 +1133,28 @@ function renderDrift() {
   el.hidden = false;
   el.className = "notice notice--warn";
   el.innerHTML = `
-    <strong>Config update available</strong> &mdash; ${n} field${n === 1 ? "" : "s"} added in a recent script update:
+    <strong>${U.escapeHtml(t("config.drift.heading"))}</strong> &mdash;
+    ${U.escapeHtml(tp("config.drift.detail", n))}
     <ul>${drift.addedKeys.map((k) => `<li><code>${U.escapeHtml(k)}</code></li>`).join("")}</ul>
     <div class="notice-actions">
-      <button type="button" id="cfgSyncBtn" class="btn btn-primary btn-small">Sync now</button>
-      <span class="notice-sub">Adds the missing fields with their defaults. Your existing values are never changed.</span>
+      <button type="button" id="cfgSyncBtn" class="btn btn-primary btn-small" data-i18n="config.drift.syncNow">Sync now</button>
+      <span class="notice-sub" data-i18n="config.drift.syncSub">Adds the missing fields with their defaults. Your existing values are never changed.</span>
     </div>`;
+  applyI18n(el); // the banner is rebuilt from scratch on every check
   U.$("#cfgSyncBtn", rootEl).addEventListener("click", doSync);
 }
 
 async function doSync() {
   const btn = U.$("#cfgSyncBtn", rootEl);
   btn.disabled = true;
-  btn.textContent = "Syncing\u2026";
+  btn.textContent = t("config.drift.syncing");
   try {
     const result = await api.syncConfig();
     showNotice("cfgNotice", "");
     U.toast(
       result.patched
-        ? `Synced ${result.addedKeys.length} field${result.addedKeys.length === 1 ? "" : "s"}. Applies on the next run.`
-        : "Already up to date.",
+        ? tp("config.drift.synced", result.addedKeys.length)
+        : t("config.drift.upToDate"),
       "success",
     );
     await loadConfig(U.$("#cfgReveal", rootEl)?.checked || false); // reload config.json (now includes the synced fields) and re-check drift
@@ -1086,7 +1162,7 @@ async function doSync() {
     const { kind, message } = explainConfigError(e);
     showNotice("cfgNotice", message, kind);
     btn.disabled = false;
-    btn.textContent = "Sync now";
+    btn.textContent = t("config.drift.syncNow");
   }
 }
 
@@ -1108,7 +1184,7 @@ function paint() {
 
 export default {
   id: "config",
-  label: "Config",
+  labelKey: "tab.config",
   interval: 0, // never poll: it would stomp on whatever is in the editor
 
   mount(root, ctx) {
@@ -1120,35 +1196,35 @@ export default {
 
         <section class="panel cfg-reveal-banner" aria-labelledby="cfg-reveal-heading">
           <div class="cfg-reveal-copy">
-            <h2 class="cfg-reveal-title" id="cfg-reveal-heading">Reveal secrets</h2>
-                    <p class="cfg-reveal-help">Enable viewing of sensitive secrets. Requires <code>API_ALLOW_CONFIG_REVEAL=true</code> on the control API.</p>
+            <h2 class="cfg-reveal-title" id="cfg-reveal-heading" data-i18n="config.revealSecrets">Reveal secrets</h2>
+                    <p class="cfg-reveal-help" data-i18n-html="config.revealHelp">Enable viewing of sensitive secrets. Requires <code>API_ALLOW_CONFIG_REVEAL=true</code> on the control API.</p>
           </div>
-          <label class="cfg-reveal-toggle" title="Fetch webhook URLs and tokens from the control API">
-            <input type="checkbox" id="cfgReveal" role="switch" aria-label="Reveal secrets">
+          <label class="cfg-reveal-toggle" title="${U.escapeAttr(t("config.revealTitle"))}" data-i18n-title="config.revealTitle">
+            <input type="checkbox" id="cfgReveal" role="switch" aria-label="${U.escapeAttr(t("config.revealSecrets"))}" data-i18n-aria-label="config.revealSecrets">
             <span class="cfg-reveal-track" aria-hidden="true"></span>
-            <span class="visually-hidden">Reveal secrets</span>
+            <span class="visually-hidden" data-i18n="config.revealSecrets">Reveal secrets</span>
           </label>
         </section>
 
             <section class="panel" aria-labelledby="cfg-settings-heading">
                 <div class="panel-head">
-                    <h2 id="cfg-settings-heading">Settings</h2>
-                    <span class="panel-sub">Saves each change automatically. Applies on the next run.</span>
+                    <h2 id="cfg-settings-heading" data-i18n="config.heading">Settings</h2>
+                    <span class="panel-sub" data-i18n="config.subtitle">Saves each change automatically. Applies on the next run.</span>
                 </div>
                 <div class="cfg-toggle-groups" id="cfgSettings"></div>
             </section>
 
             <section class="panel" aria-labelledby="cfg-raw-heading">
                 <div class="panel-head">
-                    <h2 id="cfg-raw-heading">Raw config</h2>
-                    <span class="panel-sub">Only the fields you actually change are sent</span>
+                    <h2 id="cfg-raw-heading" data-i18n="config.rawHeading">Raw config</h2>
+                    <span class="panel-sub" data-i18n="config.rawSub">Only the fields you actually change are sent</span>
                 </div>
 
                 <textarea id="cfgEditor" class="editor" spellcheck="false" autocomplete="off" aria-label="config.json"></textarea>
 
                 <div class="form-actions">
-                    <button type="button" id="cfgSave" class="btn btn-primary">Save changes</button>
-                    <button type="button" id="cfgReload" class="btn" title="Discard unsaved edits and re-fetch config.json from the bot.">Reload from API</button>
+                    <button type="button" id="cfgSave" class="btn btn-primary" data-i18n="config.saveChanges">Save changes</button>
+                    <button type="button" id="cfgReload" class="btn" title="Discard unsaved edits and re-fetch config.json from the bot." data-i18n="config.reloadFromApi" data-i18n-title="config.reloadTitle">Reload from API</button>
                 </div>
             </section>`;
 
@@ -1160,7 +1236,7 @@ export default {
         if (e.target.checked && res.redacted) {
           showNotice(
             "cfgNotice",
-            "The control API refused to reveal secrets. Set <code>API_ALLOW_CONFIG_REVEAL=true</code> (and an <code>API_TOKEN</code>) on it to enable this.",
+            t("config.error.revealRefused"),
           );
         }
       } catch (err) {
@@ -1175,7 +1251,7 @@ export default {
       } catch (err) {
         showNotice(
           "cfgNotice",
-          `Not valid JSON: ${U.escapeHtml(err.message)}`,
+          t("config.error.notJson", { message: U.escapeHtml(err.message) }),
           "error",
         );
         return;
@@ -1183,16 +1259,14 @@ export default {
 
       const patch = deepDiff(loaded, edited);
       if (!Object.keys(patch).length) {
-        U.toast("Nothing changed.", "info");
+        U.toast(t("config.toast.nothingChanged"), "info");
         return;
       }
 
       if (JSON.stringify(patch).includes(REDACTED)) {
         showNotice(
           "cfgNotice",
-          "That change would write <code>" +
-          REDACTED +
-          "</code> over a real secret. Enable <code>API_ALLOW_CONFIG_REVEAL=true</code> on the control API and tick &ldquo;Reveal secrets&rdquo; first.",
+          t("config.error.redactedWrite", { redacted: REDACTED }),
           "error",
         );
         return;
@@ -1201,7 +1275,7 @@ export default {
       try {
         await save(
           patch,
-          `${Object.keys(patch).length} field${Object.keys(patch).length === 1 ? "" : "s"}`,
+          tp("config.saveDesc.fieldCount", Object.keys(patch).length),
         );
         loaded = edited;
         renderSettings();

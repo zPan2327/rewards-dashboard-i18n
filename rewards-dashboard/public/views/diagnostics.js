@@ -1,5 +1,6 @@
 import * as U from "../util.js";
 import { cached } from "../api.js";
+import { t, tp } from "../i18n/index.js";
 
 let rootEl = null;
 let context = null;
@@ -14,15 +15,17 @@ function render() {
   if (!rootEl || !payload) return;
 
   U.$("#diagMeta", rootEl).textContent = payload.dir
-    ? `${payload.count} capture${payload.count === 1 ? "" : "s"} in ${payload.dir}`
+    ? tp("diagnostics.captureCount", payload.count, {
+        count: payload.count,
+        dir: payload.dir,
+      })
     : "";
 
   const list = U.$("#diagList", rootEl);
   const entries = payload.entries || [];
 
   if (!entries.length) {
-    list.innerHTML =
-      '<li class="empty-note">No error captures \u2014 nothing has gone wrong badly enough to be worth a screenshot. Captures need <code>errorDiagnostics</code> enabled in the bot\u2019s config.</li>';
+    list.innerHTML = `<li class="empty-note">${t("diagnostics.empty")}</li>`;
     return;
   }
 
@@ -30,29 +33,41 @@ function render() {
     .map((entry) => {
       const isOpen = open === entry.name;
       const badges = [
-        entry.hasScreenshot ? '<span class="tag-mini">screenshot</span>' : "",
+        entry.hasScreenshot
+          ? `<span class="tag-mini">${U.escapeHtml(
+              t("diagnostics.tagScreenshot"),
+            )}</span>`
+          : "",
         entry.hasError ? '<span class="tag-mini">error.txt</span>' : "",
         entry.hasHtml ? '<span class="tag-mini">dump.html</span>' : "",
       ].join("");
 
       const firstLine =
         (entry.error || "").split("\n").find((l) => l.trim()) ||
-        "No error text captured.";
+        t("diagnostics.noErrorText");
 
       const body = isOpen
         ? `<div class="diag-body">
                     ${entry.hasError
           ? `<pre class="diag-pre">${U.escapeHtml(entry.error || "")}</pre>`
-          : '<p class="empty-note">No error.txt in this capture.</p>'
+          : `<p class="empty-note">${U.escapeHtml(
+              t("diagnostics.noErrorFile"),
+            )}</p>`
         }
                     ${entry.hasScreenshot
           ? `<a class="diag-shot" href="${U.escapeAttr(diagUrl(entry.name, "screenshot.png"))}" target="_blank" rel="noopener">
-                                 <img src="${U.escapeAttr(diagUrl(entry.name, "screenshot.png"))}" alt="Screenshot captured when ${U.escapeAttr(entry.name)} failed" loading="lazy">
+                                 <img src="${U.escapeAttr(diagUrl(entry.name, "screenshot.png"))}" alt="${U.escapeAttr(
+                                   t("diagnostics.screenshotAlt", {
+                                     name: entry.name,
+                                   }),
+                                 )}" loading="lazy">
                                </a>`
           : ""
         }
                     ${entry.hasHtml
-          ? `<p><a class="btn btn-small" href="${U.escapeAttr(diagUrl(entry.name, "dump.html"))}" download>Download dump.html</a></p>`
+          ? `<p><a class="btn btn-small" href="${U.escapeAttr(diagUrl(entry.name, "dump.html"))}" download>${U.escapeHtml(
+                          t("diagnostics.downloadDump"),
+                        )}</a></p>`
           : ""
         }
                    </div>`
@@ -87,7 +102,7 @@ function diagUrl(name, file) {
 async function clearSession(email) {
   if (!context) return;
   const confirmed = window.confirm(
-    `Clear stored sessions for ${email}?\n\nThis logs the account out immediately \u2014 it will need to sign back in (and re-approve 2FA if used) on its next run.`,
+    t("diagnostics.confirmClear", { email }),
   );
   if (!confirmed) return;
 
@@ -95,7 +110,7 @@ async function clearSession(email) {
   renderSessions();
   try {
     await context.api.clearSession(email);
-    context.toast(`Sessions cleared for ${email}.`, "success");
+    context.toast(t("diagnostics.toast.cleared", { email }), "success");
     context.invalidate();
     await context.refresh();
   } catch (e) {
@@ -112,7 +127,9 @@ function renderSessions() {
   if (!list) return;
 
   if (!accountsPayload || !sessionsPayload) {
-    list.innerHTML = '<p class="empty-note" style="padding:1.25rem">Loading&hellip;</p>';
+    list.innerHTML = `<p class="empty-note" style="padding:1.25rem">${U.escapeHtml(
+      t("common.loading"),
+    )}</p>`;
     return;
   }
 
@@ -120,8 +137,9 @@ function renderSessions() {
     (a) => a.configured,
   );
   if (!accounts.length) {
-    list.innerHTML =
-      '<p class="empty-note" style="padding:1.25rem">No configured accounts found.</p>';
+    list.innerHTML = `<p class="empty-note" style="padding:1.25rem">${U.escapeHtml(
+      t("diagnostics.noAccounts"),
+    )}</p>`;
     return;
   }
 
@@ -143,15 +161,20 @@ function renderSessions() {
         null,
       );
       const meta = hasSessions
-        ? `${sessions.map((s) => U.escapeHtml(s.platform)).join(" \u00b7 ")} \u00b7 updated ${U.escapeHtml(U.fmtRelative(latest))}`
-        : "No stored sessions";
+        ? t("diagnostics.sessionsUpdated", {
+            platforms: sessions
+              .map((s) => U.escapeHtml(s.platform))
+              .join(" \u00b7 "),
+            time: U.fmtRelative(latest),
+          })
+        : t("diagnostics.noStoredSessions");
 
       const isClearing = clearing.has(a.email);
       const disabled = !hasSessions || running || isClearing;
       const title = running
-        ? "The bot must be idle to clear a session"
+        ? t("diagnostics.clearBlockedRunning")
         : !hasSessions
-          ? "Nothing stored for this account yet"
+          ? t("diagnostics.clearBlockedEmpty")
           : "";
 
       return `<div class="session-card">
@@ -161,7 +184,9 @@ function renderSessions() {
                 </div>
                 <button type="button" class="btn btn-danger btn-small" data-clear-session="${U.escapeAttr(a.email)}"
                     ${disabled ? "disabled" : ""} ${title ? `title="${U.escapeAttr(title)}"` : ""}>
-                    ${isClearing ? "Clearing\u2026" : "Clear sessions"}
+                    ${isClearing
+                      ? U.escapeHtml(t("diagnostics.clearing"))
+                      : U.escapeHtml(t("diagnostics.clearSessions"))}
                 </button>
             </div>`;
     })
@@ -176,7 +201,7 @@ function renderSessions() {
 
 export default {
   id: "diagnostics",
-  label: "Diagnostics",
+  labelKey: "tab.diagnostics",
   interval: 30000,
 
   mount(root, ctx) {
@@ -185,27 +210,27 @@ export default {
     root.innerHTML = `
             <section class="panel" aria-labelledby="sessions-heading">
                 <div class="panel-head">
-                    <h2 id="sessions-heading">Session management</h2>
-                    <span class="panel-sub">Clearing sessions can fix most common login issues</span>
+                    <h2 id="sessions-heading" data-i18n="diagnostics.sessionsHeading">Session management</h2>
+                    <span class="panel-sub" data-i18n="diagnostics.sessionsSub">Clearing sessions can fix most common login issues</span>
                 </div>
-                <p class="notice notice--warn">
+                <p class="notice notice--warn" data-i18n="diagnostics.sessionsNotice">
                     Clearing a session logs that account out immediately. It will need to sign in again
                     &mdash; and re-approve 2FA if used &mdash; on its next run. Only clear a session if you're
                     actually seeing login problems for that account.
                 </p>
                 <div class="session-card-list" id="sessionCardList">
-                    <p class="empty-note" style="padding:1.25rem">Loading&hellip;</p>
+                    <p class="empty-note" style="padding:1.25rem" data-i18n="common.loading">Loading&hellip;</p>
                 </div>
             </section>
 
             <section class="panel" aria-labelledby="diag-heading">
                 <div class="panel-head">
-                    <h2 id="diag-heading">Error captures</h2>
+                    <h2 id="diag-heading" data-i18n="diagnostics.capturesHeading">Error captures</h2>
                     <span class="panel-sub" id="diagMeta"></span>
-                    <button type="button" id="diagRefresh" class="btn btn-small">Refresh</button>
+                    <button type="button" id="diagRefresh" class="btn btn-small" data-i18n="common.refresh">Refresh</button>
                 </div>
                 <ul class="diag-list" id="diagList">
-                    <li class="empty-note">Loading&hellip;</li>
+                    <li class="empty-note" data-i18n="common.loading">Loading…</li>
                 </ul>
             </section>`;
 
