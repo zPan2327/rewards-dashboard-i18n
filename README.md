@@ -27,6 +27,9 @@
 git clone https://github.com/zPan2327/rewards-dashboard-i18n.git
 cd rewards-dashboard-i18n
 
+# 与机器人容器共享的 Docker 网络（已存在时会报 already exists，忽略即可）
+docker network create rewards 2>/dev/null || true
+
 # 填写与机器人端一致的 Control API 令牌
 cp .env.example .env
 vi .env                      # API_TOKEN=...
@@ -40,6 +43,7 @@ docker compose up -d --build
 
 ```bash
 mkdir rewards-dashboard-i18n && cd rewards-dashboard-i18n
+docker network create rewards 2>/dev/null || true
 curl -fsSL https://raw.githubusercontent.com/zPan2327/rewards-dashboard-i18n/main/compose.yaml -o compose.yaml
 cp .env.example .env 2>/dev/null || printf 'API_TOKEN=your-token\n' > .env
 # compose.yaml 里的 build.context 指向 ./rewards-dashboard，所以还要拿到源码
@@ -57,9 +61,16 @@ docker pull ghcr.io/zpan2327/rewards-dashboard-i18n:latest
 ```
 
 > [!IMPORTANT]
-> GHCR 上的 package 默认是 **private**。首次发布后，请到
-> `GitHub → 你的头像 → Packages → rewards-dashboard-i18n → Package settings → Change visibility`
-> 把它改成 **public**，否则别人（以及未登录的 `docker pull`）拉不下来。
+> GHCR 上的 package 默认是 **private**，需要手动改成 public（本仓库已改好，fork 出去的人请自行处理）：
+> `GitHub → 你的头像 → Packages → rewards-dashboard-i18n → Package settings → Change visibility`。
+> 否则未登录的 `docker pull` 会拉不下来。
+
+已发布的可用 tag：
+
+| tag | 说明 |
+| --- | --- |
+| `v1.3.6-i18n.1` | 基于上游 v1.3.6 的简体中文版（推荐固定使用） |
+| `latest` | 每次打 tag 都会更新，指向最新发布版 |
 
 ---
 
