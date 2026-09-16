@@ -69,8 +69,10 @@ docker pull ghcr.io/zpan2327/rewards-dashboard-i18n:latest
 
 | tag | 说明 |
 | --- | --- |
-| `v1.3.6-i18n.1` | 基于上游 v1.3.6 的简体中文版（推荐固定使用） |
-| `latest` | 每次打 tag 都会更新，指向最新发布版 |
+| `latest` | 每次都指向最新一次发布 |
+| `v1.3.6-i18n.3` | 当前推荐：基于上游 v1.3.6 的简体中文版，建议生产环境固定使用 |
+
+完整的 tag 列表见 [Releases](https://github.com/zPan2327/rewards-dashboard-i18n/releases)。
 
 ---
 
