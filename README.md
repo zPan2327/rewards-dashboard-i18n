@@ -204,11 +204,19 @@ grep -c "开始处理账户" rewards-dashboard/lib/parser.js    # 输出 0 就�
 ```bash
 git remote add upstream https://github.com/mgrimace/rewards-dashboard.git
 git fetch upstream --tags
-git merge upstream/v1.3.7        # 只会在 views/config.js 等少数调用点有冲突
+
+# 当前基线是 v2.0.0：i18n 的提交已经 rebase 到上游 v2.0.0 之上，
+# 所以上游提交是真正的祖先，后续合并是正常的三方合并。
+git merge upstream/v2.1.0        # 换成上游实际的新 tag
 
 cd rewards-dashboard
 node tools/i18n-check.mjs        # 看还差哪些 key
 ```
+
+> 合并前建议先看一眼上游改了什么：`git log --oneline v2.0.0..upstream/v2.1.0`。
+> 如果上游只是加功能、没动 `views/` 的结构，通常只需要补几条 `zh-CN.js`。
+> 如果上游重写了某个视图（像 v2.0.0 重写账号页那样），就以上游结构为准，
+> 再把该文件的 `t()` 调用补回去 —— 这正是 v2.0.0 升级时做的事。
 
 | 上游的改动 | 你要做的事 |
 | --- | --- |
