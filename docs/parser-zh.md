@@ -90,7 +90,7 @@ error: fm[3],
 | --- | --- | --- |
 | 解析出的结构化事件 | 1 | 18 |
 | `/api/runs` | `[]` | 有完整运行记录 |
-| 账户状态 `observed` | — | 3 个账户全部 true |
+| 账户状态 `observed` | — | 全部账户 true |
 | 账户历史 | 空 | 已填充 |
 | 连续保护字段 | — | 与 Control API `/accounts` 完全一致 |
 
@@ -102,6 +102,9 @@ services:
     volumes:
       - /path/to/rewards-dashboard-i18n/rewards-dashboard/lib/parser.js:/usr/src/rewards-dashboard/lib/parser.js:ro
 ```
+
+> 这是 v1.3.6 时代的做法。**v2.0.0-i18n.1 起补丁已打进镜像，不再需要挂载**；
+> 下面的说明仅用于解释为什么以前要挂，以及回滚到旧镜像时的注意事项。
 
 > 挂载后**必须清掉 SQLite 里的事件游标**才会回填。
 > 因为 `store.js` 会记住最后一条事件的 `ts`，重启时丢弃所有 `ts <= _lastTs` 的旧事件
@@ -116,7 +119,7 @@ services:
 # 1. 正常同步上游
 git remote add upstream https://github.com/mgrimace/rewards-dashboard.git
 git fetch upstream --tags
-git merge upstream/v1.3.7
+git merge upstream/v2.1.0        # 当前基线是 v2.0.0
 
 # 2. 检查 parser 是否被上游覆盖
 grep -c "开始处理账户" rewards-dashboard/lib/parser.js
@@ -134,3 +137,22 @@ grep -c "开始处理账户" rewards-dashboard/lib/parser.js
 | `rewards-dashboard/lib/parser.js` | 本补丁的修改对象 |
 | 机器人 `scripts/api/logParser.js` | **契约来源**，中文日志的权威定义 |
 | `rewards-dashboard/lib/store.js` | 事件写入 SQLite；游标决定能否回填历史 |
+
+---
+
+## 7. v2.0.0 之后的变化（2026-10）
+
+上游 v2.0.0 重写了 `lib/parser.js`（新增 `status=` / `reason=` / `activities=`、`waitMs`、
+`Run interrupted`、`CONTROLLER` 结论行等），本仓库没有用旧文件覆盖，而是**把中文分支重新叠加到新正则上**：
+
+- 上游新增字段全部保留（v5 日志能解析）；
+- 中文分支一个不少（v4-china 日志照常解析）；
+- 取值下标写成 `fm[1] || fm[2]` 这种兼容形式，英文日志行为不变。
+
+验证数据也更新了：对 **4000 行**真实容器日志逐行解析，得到 **3974 条**结构化事件，
+覆盖 `account-start` / `account-end` / `account-delay` / `run-end` / `streak-protection` / `wrapper-*`。
+
+同时部署方式变了：**补丁已经打进镜像**，`compose.override.yaml` 里的 `parser.js` 挂载已移除。
+升级只需要换镜像 tag，不会再出现「镜像内一份、挂载又一份」的不一致。
+
+第 5 节的 `grep -c "开始处理账户"` 检查依然有效，可以用来确认合并上游时补丁没丢。

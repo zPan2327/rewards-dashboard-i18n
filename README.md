@@ -76,6 +76,9 @@ docker pull ghcr.io/zpan2327/rewards-dashboard-i18n:latest
 
 完整的 tag 列表见 [Releases](https://github.com/zPan2327/rewards-dashboard-i18n/releases)。
 
+想看这一版和上一版（v1.3.6-i18n.3）到底差在哪，包括上游 23 个提交带来的功能变化、
+新增的 82 条文案、以及部署方式的调整，见 **[docs/CHANGELOG-v2.0.0.md](./docs/CHANGELOG-v2.0.0.md)**。
+
 ---
 
 ## 机器人端需要做什么

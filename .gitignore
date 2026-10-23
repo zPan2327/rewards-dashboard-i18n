@@ -4,6 +4,9 @@ target/
 *.db
 *.db-shm
 *.db-wal
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
 
 # macOS
 .DS_Store
