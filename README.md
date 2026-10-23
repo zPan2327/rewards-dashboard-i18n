@@ -183,6 +183,20 @@ grep -c "开始处理账户" rewards-dashboard/lib/parser.js    # 输出 0 就�
 
 ---
 
+## 本分支的其它本地适配
+
+除了中文文案与日志解析，本分支还做了三处与上游不同的小改动，都会在合并上游时被保留：
+
+| 改动 | 原因 |
+| --- | --- |
+| `public/vendor/phosphor/` 内置图标字体 | 上游从 `unpkg.com` 现场加载 Phosphor 图标；账号状态轨道是**纯图标**的，CDN 一旦被墙或超时，状态就完全看不见。这里把 v2.1.1 的 CSS + woff2 收进仓库（约 220 KB），不再依赖第三方网络。 |
+| `server.js` 的 MIME 表补 `woff2/woff/ttf` | 静态服务原来把字体当成 `application/octet-stream` 返回，Chromium 会直接放弃加载，表现为所有图标空白。 |
+| 页脚版本行跟随语言、`runAccountMap` 空状态防护 | 切换语言后页脚仍显示英文；首帧 `status` 还没到时概览页会抛 `Cannot read properties of null`。两处都是上游 v2.0.0 遗留的小问题。 |
+
+升级上游并重新内置图标时，只需用同版本的 `style.css` 与 `Phosphor.woff2` 覆盖 `public/vendor/phosphor/` 即可。
+
+---
+
 ## 跟随上游更新（重点）
 
 这套方案的核心目标就是：**上游发新版本时，不需要重新翻译一遍**。

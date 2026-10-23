@@ -317,6 +317,12 @@ const MIME = {
   ".svg": "image/svg+xml",
   ".png": "image/png",
   ".ico": "image/x-icon",
+  // The vendored Phosphor icon font (public/vendor/phosphor). Browsers are
+  // picky about font MIME types, and application/octet-stream made Chromium
+  // skip the file entirely.
+  ".woff2": "font/woff2",
+  ".woff": "font/woff",
+  ".ttf": "font/ttf",
 };
 
 function sendJson(res, status, body) {

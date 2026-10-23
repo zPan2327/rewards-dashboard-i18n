@@ -394,6 +394,15 @@ function renderFooter() {
                 ? t("status.running")
                 : t("status.connected");
 
+    // The dashboard version is a translated string too, so it has to be
+    // rewritten here rather than once at boot - otherwise it keeps whatever
+    // language was active on first paint after the user switches.
+    if (els.footerVersion) {
+        els.footerVersion.textContent = t("app.footerDashboard", {
+            version: window.APP_VERSION || "Development",
+        });
+    }
+
     footerScriptVersion.textContent = t("app.footerScript", {
         version: s?.version || "\u2013",
     });

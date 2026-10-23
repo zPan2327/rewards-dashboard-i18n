@@ -352,7 +352,7 @@ const STATUS_ALIASES = {
 
 export function runAccountMap(status) {
   return new Map(
-    (status.bot?.run?.accounts || [])
+    (status?.bot?.run?.accounts || [])
       .filter((account) => account?.email)
       .map((account) => [account.email.trim().toLowerCase(), account]),
   );
