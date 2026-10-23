@@ -71,7 +71,8 @@ docker pull ghcr.io/zpan2327/rewards-dashboard-i18n:latest
 | tag | 说明 |
 | --- | --- |
 | `latest` | 每次都指向最新一次发布 |
-| `v1.3.6-i18n.3` | 当前推荐：基于上游 v1.3.6 的简体中文版，建议生产环境固定使用 |
+| `v2.0.0-i18n.1` | 当前推荐：基于上游 v2.0.0 的简体中文版（支持 Rewards Script v4/v5），建议生产环境固定使用 |
+| `v1.3.6-i18n.3` | 旧版：基于上游 v1.3.6，仅供回滚使用 |
 
 完整的 tag 列表见 [Releases](https://github.com/zPan2327/rewards-dashboard-i18n/releases)。
 
@@ -95,6 +96,25 @@ environment:
 > 只有在你确实需要时再开启 `API_ALLOW_CONFIG_REVEAL`；开启后请确保仪表盘本身已有登录保护。
 
 两个容器必须能互相访问：把它们放进同一个 Docker 网络（本项目 `compose.yaml` 里已经接上了外部的 `rewards` 网络），或者直接把本项目的服务复制进机器人的 `compose.yaml`，参考 [`sample-stack-compose.yaml`](./sample-stack-compose.yaml)。
+
+---
+
+## 从 v1.3.6 升级到 v2.0.0
+
+上游 v2.0.0 是一个大版本，除了继续支持 Rewards Script v4，还新增了对 v5 的配置项支持
+（`config` 页会按机器人版本自动置灰不适用的开关，并标注 `v5 only` / `v4 only`）。
+本分支已把上游 diff 全量合并，并保留全部中文文案与 `lib/parser.js` 的中文日志解析补丁。
+
+升级步骤：
+
+```bash
+git pull
+docker compose build --pull
+docker compose up -d
+```
+
+如果用的是 GHCR 镜像，把 `compose.yaml` 的 `image:` 指向 `v2.0.0-i18n.1` 后 `docker compose up -d` 即可。
+仪表盘数据（`./data`）与 `CONTROL_API_URL` / `CONTROL_API_TOKEN` 都不需要改。
 
 ---
 
