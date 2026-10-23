@@ -59,6 +59,10 @@ const TOGGLE_GROUPS = [
         label: "Skip non-point tasks",
         desc: "Skip tasks that award no points",
       },
+      prewarmDesktopLogin: {
+        label: "Prewarm desktop login",
+        desc: "Prewarm the desktop login session before running desktop tasks",
+      },
       searchOnBingLocalQueries: {
         label: "Local queries for ExploreOnBing",
         desc: "Use the local query list for ExploreOnBing",

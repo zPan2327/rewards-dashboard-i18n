@@ -486,6 +486,8 @@ export default {
   "config.toggle.skipNonPointTasks.desc": "Skip tasks that award no points",
   // Not in TOGGLE_GROUPS (newer config.json field); mirrors the derived label.
   "config.toggle.contintueOnBotWarning.label": "Contintue on bot warning",
+  "config.toggle.prewarmDesktopLogin.label": "Prewarm desktop login",
+  "config.toggle.prewarmDesktopLogin.desc": "Prewarm the desktop login session before running desktop tasks",
   "config.toggle.searchOnBingLocalQueries.label": "Local queries for ExploreOnBing",
   "config.toggle.searchOnBingLocalQueries.desc": "Use the local query list for ExploreOnBing",
   "config.toggle.workers.doDailySet.label": "Daily set",

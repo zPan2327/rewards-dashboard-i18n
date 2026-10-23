@@ -486,6 +486,8 @@ export default {
   "config.toggle.autoClaimPunchcardRewards.desc": "自动领取已完成的打卡任务奖励",
   "config.toggle.skipNonPointTasks.label": "跳过无积分任务",
   "config.toggle.skipNonPointTasks.desc": "跳过不发放积分的任务",
+  "config.toggle.prewarmDesktopLogin.label": "预热桌面登录",
+  "config.toggle.prewarmDesktopLogin.desc": "在执行桌面任务前预先建立登录会话",
   "config.toggle.contintueOnBotWarning.label": "机器人警告时继续",
   "config.toggle.searchOnBingLocalQueries.label": "ExploreOnBing 使用本地查询词",
   "config.toggle.searchOnBingLocalQueries.desc": "为 ExploreOnBing 使用本地查询词列表",
