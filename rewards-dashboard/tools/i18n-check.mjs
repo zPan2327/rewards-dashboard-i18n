@@ -139,6 +139,7 @@ const DYNAMIC_PREFIXES = [
   "config.field.",
   "config.option.",
   "config.delay.",
+  "themes.", // resolved as `themes.${theme.id}` from the theme modules
 ];
 
 const unusedKeys = enKeys.filter((k) => {

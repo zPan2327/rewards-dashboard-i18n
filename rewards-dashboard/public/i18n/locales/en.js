@@ -30,6 +30,21 @@ export default {
   "app.themeSwitchToDark": "Switch to dark mode",
   "app.themeSwitchToLight": "Switch to light mode",
 
+  // ── Theme names (theme picker) ──────────────────────────────────────────
+  "themes.default": "Default",
+  "themes.catppuccin": "Catppuccin",
+  "themes.dracula": "Dracula",
+  "themes.everforest": "Everforest",
+  "themes.flexoki": "Flexoki",
+  "themes.gruvbox": "Gruvbox",
+  "themes.kanagawa": "Kanagawa",
+  "themes.kanagawa-wave": "Kanagawa Wave",
+  "themes.nord": "Nord",
+  "themes.rose-pine": "Rosé Pine",
+  "themes.science": "Science",
+  "themes.solarized": "Solarized",
+  "themes.tokyo-night": "Tokyo Night",
+
   // ── API layer ─────────────────────────────────────────────────────────────────
   "api.unreachable": "Dashboard server unreachable",
 
@@ -55,6 +70,11 @@ export default {
   "pill.stopping": "Stopping",
   "pill.pending": "Pending",
   "pill.idle": "Idle",
+  "pill.full": "Full",
+  "pill.partial": "Partial",
+  "pill.skipped": "Skipped",
+  "pill.stalled": "Stalled",
+  "pill.sleeping": "Sleeping",
 
   // ── Run control strip ───────────────────────────────────────────────────
   "ctl.start": "Start run",

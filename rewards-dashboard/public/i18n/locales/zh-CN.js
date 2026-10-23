@@ -11,7 +11,8 @@
  *   daily set 每日任务 · Schedule 定时任务 · scheduler 调度器
  *   session 会话 · proxy 代理 · Earnable 可获取
  * 保持原样不译：Microsoft Rewards、ACCOUNT_N_*、config.json 的键名与取值、
- * 日志中出现的英文关键词（用于匹配日志行）、主题名、cron 表达式。
+ * 日志中出现的英文关键词（用于匹配日志行）、cron 表达式。
+ * 主题名按中文习惯意译/音译，见 `themes.*`；英文界面仍显示原名。
  */
 export default {
   // ── 应用外壳 / 文档 ─────────────────────────────────────────────────────
@@ -25,6 +26,21 @@ export default {
   "app.footerScript": "Microsoft Rewards 脚本：{version}",
   "app.themeSwitchToDark": "切换到深色模式",
   "app.themeSwitchToLight": "切换到浅色模式",
+
+  // ── 主题名称（主题选择框） ──────────────────────────────────────────────
+  "themes.default": "默认",
+  "themes.catppuccin": "卡布奇诺",
+  "themes.dracula": "德古拉",
+  "themes.everforest": "常青森林",
+  "themes.flexoki": "墨纸",
+  "themes.gruvbox": "灰盒",
+  "themes.kanagawa": "神奈川",
+  "themes.kanagawa-wave": "神奈川·浪",
+  "themes.nord": "北境",
+  "themes.rose-pine": "玫瑰松",
+  "themes.science": "科学",
+  "themes.solarized": "日光",
+  "themes.tokyo-night": "东京夜",
 
   // ── API 层 ─────────────────────────────────────────────────────────────────────────
   "api.unreachable": "无法连接仪表盘服务器",
@@ -51,6 +67,11 @@ export default {
   "pill.stopping": "停止中",
   "pill.pending": "等待中",
   "pill.idle": "空闲",
+  "pill.full": "已满",
+  "pill.partial": "部分完成",
+  "pill.skipped": "已跳过",
+  "pill.stalled": "已停滞",
+  "pill.sleeping": "休眠中",
 
   // ── 运行控制条 ──────────────────────────────────────────────────────────
   "ctl.start": "开始运行",

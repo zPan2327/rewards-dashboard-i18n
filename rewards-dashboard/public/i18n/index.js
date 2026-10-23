@@ -25,8 +25,12 @@ export const LOCALES = [
   { id: "zh-CN", label: "简体中文", dict: zhCN },
 ];
 
-/** Locale used until the visitor picks another one, and the final fallback. */
-export const DEFAULT_LOCALE = "en";
+/**
+ * Locale used until the visitor picks another one. This fork deliberately
+ * starts in Simplified Chinese; English is one click away and still owns
+ * every key as the source language (see docs/i18n.md).
+ */
+export const DEFAULT_LOCALE = "zh-CN";
 
 const STORAGE_KEY = "rewards-dashboard:locale";
 
@@ -117,7 +121,9 @@ export function getLocale() {
  * left untouched.
  */
 export function dateLocale() {
-  return currentId === DEFAULT_LOCALE ? null : currentId;
+  // English keeps the browser default (byte-identical output to the original
+  // dashboard); every other locale gets an explicit Intl tag.
+  return currentId === "en" ? null : currentId;
 }
 
 export function getLocaleLabel(id = currentId) {

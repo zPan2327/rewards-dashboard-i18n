@@ -5,6 +5,7 @@ import {
   LOCALES,
   applyI18n,
   getLocale,
+  hasKey,
   initI18n,
   onLocaleChange,
   setLocale,
@@ -106,6 +107,27 @@ let currentMode = "light";
 
 const findTheme = (id) => themes.find((t) => t.id === id) || themes[0] || null;
 
+// Theme names live in the dictionaries (`themes.<id>`), so the picker follows
+// the interface language. A theme added upstream without a translation keeps
+// the name declared in its own module as the fallback.
+function themeLabel(theme) {
+  const key = `themes.${theme.id}`;
+  return hasKey(key) ? t(key) : theme.name;
+}
+
+// Rebuilt on every language switch; the English name stays in `title` so the
+// original spelling is still discoverable while the UI is Chinese.
+function renderThemeOptions() {
+  if (!els.themeSelect) return;
+  els.themeSelect.innerHTML = themes
+    .map(
+      (theme) =>
+        `<option value="${U.escapeAttr(theme.id)}" title="${U.escapeAttr(theme.name)}">${U.escapeHtml(themeLabel(theme))}</option>`,
+    )
+    .join("");
+  if (currentThemeId) els.themeSelect.value = currentThemeId;
+}
+
 function setMode(mode, persist) {
   currentMode = mode;
   els.modeIcon.textContent = mode === "dark" ? "\u2600" : "\u263D";
@@ -132,12 +154,7 @@ function setTheme(id, persist) {
 
 function initTheme() {
   if (!themes.length) return;
-  els.themeSelect.innerHTML = themes
-    .map(
-      (t) =>
-        `<option value="${U.escapeAttr(t.id)}">${U.escapeHtml(t.name)}</option>`,
-    )
-    .join("");
+  renderThemeOptions();
 
   const storedThemeId = getStoredThemeId();
   currentMode = getStoredMode() || (systemPrefersDark() ? "dark" : "light");
@@ -179,6 +196,7 @@ function initLanguage() {
     renderControlStrip(); // run controls + ticker
     renderFooter(); // footer
     renderCodes(); // login codes
+    renderThemeOptions(); // theme picker labels
     setMode(currentMode, false); // theme button label + redraw
     remountActive(); // the active view, whose markup is built by JS
   });
