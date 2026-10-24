@@ -1,3 +1,5 @@
+**简体中文** | [English](./README.en.md)
+
 # Rewards Dashboard（简体中文版）
 
 [![Release](https://img.shields.io/github/v/release/zPan2327/rewards-dashboard-i18n?include_prereleases&sort=semver)](https://github.com/zPan2327/rewards-dashboard-i18n/releases)
@@ -16,7 +18,7 @@
 - **另外独立维护了一处 `lib/parser.js` 的中文日志解析补丁**，让总览页能正确解析中文日志（与本仓库的 i18n 无关）：见 [docs/parser-zh.md](./docs/parser-zh.md)；
 - **除语言相关内容、以及上面那处 `lib/parser.js` 中文日志解析补丁外，没有改动任何功能、接口或数据结构**：API 路径与请求/响应格式、鉴权逻辑、数据处理、Scheduler/Cron、Rewards Script 控制、Docker 部署方式全部保持原样；
 
-> 截图、功能列表、环境变量等完整说明见英文原版文档：[README.en.md](./README.en.md)
+> English readers: see **[README.en.md](./README.en.md)** — the same guide in English.
 
 ---
 
