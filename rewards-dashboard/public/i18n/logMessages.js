@@ -451,6 +451,9 @@ function renderValue(value) {
     if (!trimmed) return null;
     if (VALUES[trimmed] != null) return VALUES[trimmed];
     if (SEGMENTS[trimmed] != null) return SEGMENTS[trimmed];
+    const timeout = trimmed.match(/^Timeout ([\d.]+)ms exceeded.$/);
+    if (timeout) return `超时 ${timeout[1]}ms`;
+    if (VALUES[trimmed] != null) return VALUES[trimmed];
     const counted = trimmed.match(COUNT_SUMMARY);
     if (counted) {
       const [, a, b, c, d] = counted;
@@ -591,6 +594,7 @@ export function translateLogMessage(message, localeId) {
 // ── 补充词条 ──────────────────────────────────────────────────────
 // 上游新增字段/句式时集中加在这里，避免在长表里改行导致格式错乱。
 Object.assign(FIELDS, {
+  Desktop: "桌面端",
   resetAt: "重置时间",
   local: "本地时间",
   remainingMinutes: "剩余分钟",
@@ -610,7 +614,19 @@ Object.assign(FIELDS, {
   "Accept-Language": "接受语言",
 });
 
-Object.assign(VALUES, { none: "无", browser: "浏览器模式", api: "接口模式" });
+Object.assign(VALUES, {
+  null: "无",
+  desktop: "桌面端",
+  mobile: "移动端",
+  "task-skipped": "任务已跳过",
+  "visual-search": "图片搜索",
+  completed: "已完成",
+  unavailable: "不可用",
+  skipped: "已跳过",
+  none: "无",
+  browser: "浏览器模式",
+  api: "接口模式",
+});
 
 Object.assign(SEGMENTS, {
   "Dismissed: cookie consent banner (Accept)": "已关闭 Cookie 同意横幅（接受）",
@@ -621,3 +637,68 @@ Object.assign(SEGMENTS, {
 });
 
 export default PHRASES;
+
+// ── 高频补漏（按真实日志词频统计补充）────────────────────────────────
+// 注意：PHRASES 是在模块初始化时编译成正则的，所以新增短语后必须重建 COMPILED。
+PHRASES.push(
+  ["Extracted action ids", "提取任务 ID"],
+  ["Extracted offers", "提取优惠项"],
+  ["Extracted quest ids", "提取任务 ID"],
+  ["skip (disabled, quota unavailable)", "跳过（已禁用或配额不可用）"],
+  ["skip (disabled, {n}/{n})", "跳过（已禁用，{n}/{n}）"],
+);
+COMPILED.length = 0;
+for (const [pattern, zh] of PHRASES) COMPILED.push({ ...compile(pattern), zh });
+
+Object.assign(FIELDS, {
+  Desktop: "桌面端",
+  named: "已命名",
+  windowState: "窗口状态",
+});
+
+Object.assign(VALUES, {
+  null: "无",
+  desktop: "桌面端",
+  mobile: "移动端",
+  "task-skipped": "任务已跳过",
+  "visual-search": "图片搜索",
+  completed: "已完成",
+  unavailable: "不可用",
+});
+
+Object.assign(FIELDS, {
+  delayMs: "延迟毫秒",
+  readyAt: "就绪时间",
+});
+
+Object.assign(VALUES, {
+  "perk-unavailable": "加成不可用",
+  unconfirmed: "未确认",
+  "activation-control-missing": "缺少激活控件",
+  "quota-unavailable": "配额不可用",
+});
+
+Object.assign(SEGMENTS, {
+  "not applicable (skipped)": "不适用（已跳过）",
+  "Activity only applies to desktop": "该任务仅适用于桌面端",
+  completed: "已完成",
+  failed: "失败",
+  skipped: "已跳过",
+});
+
+Object.assign(FIELDS, {
+  partner: "合作方",
+  dayCompleted: "今日已完成",
+  activities: "任务数",
+  days: "天数",
+});
+
+Object.assign(VALUES, {
+  "already-complete": "今日已完成",
+});
+
+Object.assign(SEGMENTS, {
+  "already completed (skipped)": "今日已完成（跳过）",
+  "Already completed": "今日已完成",
+  "not applicable": "不适用",
+});
