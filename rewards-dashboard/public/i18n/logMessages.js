@@ -817,3 +817,13 @@ Object.assign(VALUES, {
   true: "是",
   false: "否",
 });
+
+Object.assign(SEGMENTS, {
+  "Submitting action": "提交操作",
+});
+
+Object.assign(FIELDS, {
+  name: "名称",
+  route: "路由",
+  build: "构建版本",
+});
