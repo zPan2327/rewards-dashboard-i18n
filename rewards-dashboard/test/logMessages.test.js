@@ -102,3 +102,52 @@ test("简体中文模式：已经是中文的行保持原样（不二次处理�
   assert.equal(translateLogMessage(zh, "zh-CN"), zh);
   assert.equal(translateLogMessage(zh, "en"), zh, "数据层是中文时，英文界面也不改它（由视图层隐藏）");
 });
+
+// ── 混排行与尾句：不能被 {rest} 贪婪吞掉 ──────────────────────────
+
+test("中文摘要行里的英文取值要就地翻译，纯中文取值不动", async () => {
+  const { translateLogMessage } = await load();
+  const mixed =
+    "账户结束 | 账户=a@b.com | 状态=部分完成 | 原因=Visual Search: Offer activation could not be started because its rendered control was not found";
+  const out = translateLogMessage(mixed, "zh-CN");
+  assert.ok(out.includes("原因=图片搜索：未找到渲染控件，无法开始任务激活"), out);
+  assert.ok(!out.includes("could not be started"), out);
+
+  const pure = "本轮结束 | 状态=部分完成 | 账户=1/1 | 获得积分=480";
+  assert.equal(translateLogMessage(pure, "zh-CN"), pure);
+});
+
+test("英文标签 + 中文取值：只翻标签", async () => {
+  const { translateLogMessage } = await load();
+  const out = translateLogMessage("Available sign-in methods: 批准登录请求", "zh-CN");
+  assert.equal(out, "可用登录方式：批准登录请求");
+});
+
+test("短语里的 {rest} 尾巴也要翻（遇到句号再切一次）", async () => {
+  const { translateLogMessage } = await load();
+  const out = translateLogMessage(
+    "App-only API exceptions enabled in browser mode: doDailyCheckIn, doAppPromotions. These workers still obtain an app access token and use the Microsoft Rewards app-platform API.",
+    "zh-CN",
+  );
+  assert.ok(out.startsWith("浏览器模式下仅走 API 的任务例外：doDailyCheckIn"), out);
+  assert.ok(out.includes("这些任务仍会获取应用访问令牌"), out);
+  assert.ok(!out.includes("These workers"), out);
+});
+
+test("中文摘要里的英文计数尾巴要本地化", async () => {
+  const { translateLogMessage } = await load();
+  const out = translateLogMessage(
+    "账号处理结束 | 任务数：1 completed, 3 incomplete, 2 unavailable, 2 not applicable",
+    "zh-CN",
+  );
+  assert.equal(out, "账号处理结束 | 任务数：已完成 1、未完成 3、不可用 2、不适用 2");
+});
+
+test("带引号的 reason 值也要逐段翻译", async () => {
+  const { translateLogMessage } = await load();
+  const out = translateLogMessage(
+    'Finished account: a@b.com | status=partial | reason="Visual Search: claimable bonus unknown; Bonus point claim: claimable bonus unknown"',
+    "zh-CN",
+  );
+  assert.ok(out.includes('原因="图片搜索：可领取奖励未知；奖励积分领取：可领取奖励未知"'), out);
+});

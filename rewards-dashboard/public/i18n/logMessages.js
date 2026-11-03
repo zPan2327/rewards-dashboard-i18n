@@ -429,7 +429,11 @@ function renderPhrase(text) {
     return zh.replace(/\{(?:n|s|rest|state)\}/g, () => {
       i += 1;
       const value = m[i] ?? "";
-      return slots[i - 1] === "state" ? STATES[value] || value : value;
+      const slot = slots[i - 1];
+      if (slot === "state") return STATES[value] || value;
+      // `{rest}` 常是一整句尾巴（`Modified request body: …`），能整段命中片段表就换掉
+      if (slot === "rest") return SEGMENTS[value.trim()] ?? value;
+      return value;
     });
   }
   return null;
@@ -461,6 +465,13 @@ function renderValue(value) {
     }
     const phrase = renderPhrase(trimmed);
     if (phrase != null) return phrase;
+    // 「片段名：片段」的组合式原因（`Visual Search: claimable bonus unknown`）
+    const composed = trimmed.match(/^([^:]{1,60}):\s*([\s\S]+)$/);
+    if (composed) {
+      const head = SEGMENTS[composed[1].trim()];
+      const tail = SEGMENTS[composed[2].trim()] ?? renderPhrase(composed[2].trim());
+      if (head != null && tail != null) return `${head}：${tail}`;
+    }
     return null;
   };
 
@@ -488,6 +499,19 @@ function renderValue(value) {
   return value;
 }
 
+/**
+ * 拆 `标签：取值`。标签允许带空格与连字符（`Available sign-in methods`），
+ * 但只有 FIELDS 里确实收了才认，因此不会误伤普通句子。
+ */
+function splitLabel(text) {
+  const m = text.match(/^([A-Za-z][\w .'/\\-]*?)\s*:\s*([\s\S]*)$/);
+  if (!m) return null;
+  const key = m[1].trim().replace(/\s+/g, " ");
+  const zh = FIELDS[key];
+  if (zh == null) return null;
+  return { zh, value: m[2] };
+}
+
 /** 处理一段 `|` 分隔的内容：命中则返回中文，否则 null。 */
 function renderSegment(segment) {
   const kv = segment.match(/^([A-Za-z][\w.]*)(\s*=\s*)([\s\S]*)$/);
@@ -500,11 +524,15 @@ function renderSegment(segment) {
 
   // 冒号形式（`Accounts: 1`、`geoLocale: CN`），键名不认识就原样保留，
   // 避免把 `bing:3/7` 这类指标串改坏。
-  const colon = segment.match(/^([A-Za-z][\w.]*)\s*:\s*([\s\S]*)$/);
-  if (colon) {
-    const zh = FIELDS[colon[1]];
-    if (zh != null) return `${zh}：${renderValue(colon[2])}`;
-    return null;
+  const colon = splitLabel(segment);
+  if (colon) return `${colon.zh}：${renderValue(colon.value)}`;
+
+  // 键名不是字段名、但整段是「片段名：片段」（`Visual Search: claimable bonus unknown`）
+  const composed = segment.match(/^([^:]{1,60}):\s*([\s\S]+)$/);
+  if (composed) {
+    const head = SEGMENTS[composed[1].trim()];
+    const tail = SEGMENTS[composed[2].trim()] ?? renderPhrase(composed[2].trim());
+    if (head != null && tail != null) return `${head}：${tail}`;
   }
 
   const trimmed = segment.trim();
@@ -549,6 +577,62 @@ function renderHead(text) {
 }
 
 /**
+ * 已翻译的句头里可能还挂着英文尾句 —— 典型如 `…例外：a, b. These workers …`，
+ * 短语里的 `{rest}` 会把整段吞掉。这里按句号再扫一遍，只翻译能精确命中的尾句
+ * （走 SEGMENTS / 短语表），命不中的保持原样，绝不产出半句中文。
+ */
+function translateTrailingSentences(text) {
+  const m = text.match(/^(.*[.…])\s+([A-Za-z][\s\S]*)$/);
+  if (!m) return text;
+  const tail = m[2].trim();
+  const zh = SEGMENTS[tail] ?? renderPhrase(tail);
+  if (zh == null) return text;
+  return `${m[1]} ${zh}`;
+}
+
+/**
+ * 中文行（机器人侧的中文摘要）只翻译开头的英文标签，
+ * 例如 `Available sign-in methods: 批准登录请求 …`，避免出现半英半中。
+ */
+function translateLeadingLabel(message) {
+  const label = splitLabel(message);
+  if (label == null) return message;
+  return `${label.zh}：${label.value}`;
+}
+
+/**
+ * 中文摘要行里的英文取值：`原因=Visual Search: …; Bonus point claim: …`。
+ * 只按 `; ` 拆开逐段走片段表，命不中保持原样。
+ */
+function translateMixedValues(message) {
+  const parts = String(message).split(" | ");
+  let changed = false;
+  const out = parts.map((part) => {
+    const eq = part.match(/^([^=]+)=([\s\S]*)$/);
+    if (!eq) return part;
+    const raw = eq[2];
+    if (!raw || /[\u4e00-\u9fa5]/.test(raw)) return part;
+    const zh = raw
+      .split("; ")
+      .map((piece) => renderSegment(piece.trim()) ?? SEGMENTS[piece.trim()] ?? piece)
+      .join("；");
+    if (zh === raw) return part;
+    changed = true;
+    return `${eq[1]}=${zh}`;
+  });
+  if (changed) return out.join(" | ");
+  return translateLeadingLabel(message);
+}
+
+/** 中文摘要里偶尔还挂着英文的计数尾巴（`任务数：1 completed, 3 incomplete, …`）。 */
+const COUNT_TAIL =
+  /(\d+)\s+completed,\s*(\d+)\s+incomplete,\s*(\d+)\s+unavailable,\s*(\d+)\s+not applicable/g;
+
+function localizeCounts(text) {
+  return text.replace(COUNT_TAIL, "已完成 $1、未完成 $2、不可用 $3、不适用 $4");
+}
+
+/**
  * 把一条日志正文渲染成中文。
  *
  * 未命中任何规则时**原样返回** —— 宁可显示英文，也不要出现空串或半截文本，
@@ -558,8 +642,8 @@ export function translateLogMessage(message, localeId) {
   if (!message) return "";
   if (localeId !== "zh-CN") return message;
 
-  // 已经是中文的行（机器人侧的中文摘要）原样返回，避免二次处理
-  if (/[\u4e00-\u9fa5]/.test(message)) return message;
+  // 已经是中文的行（机器人侧的中文摘要）只处理其中的英文标签/取值，避免二次处理
+  if (/[\u4e00-\u9fa5]/.test(message)) return localizeCounts(translateMixedValues(message));
 
   const parts = String(message).split(" | ");
   let changed = false;
@@ -567,7 +651,7 @@ export function translateLogMessage(message, localeId) {
   // 首段可能是 key=value / key: value，也可能是普通句子：先按分段试，失败再按短语
   const head = renderSegment(parts[0]) ?? renderHead(parts[0]);
   if (head != null) {
-    parts[0] = head;
+    parts[0] = translateTrailingSentences(head);
     changed = true;
   }
 
@@ -585,10 +669,12 @@ export function translateLogMessage(message, localeId) {
   if (!changed && !hasMarker) return message;
 
   // 配置覆盖那类标记顺手中文化（键名本身保持原样，见 docs/i18n.md 的术语约定）
-  return parts
-    .join(" | ")
-    .replace(/\[set\]/g, "[已设置]")
-    .replace(/\(forced\)/g, "（强制）");
+  return localizeCounts(
+    parts
+      .join(" | ")
+      .replace(/\[set\]/g, "[已设置]")
+      .replace(/\(forced\)/g, "（强制）"),
+  );
 }
 
 // ── 补充词条 ──────────────────────────────────────────────────────
@@ -701,4 +787,33 @@ Object.assign(SEGMENTS, {
   "already completed (skipped)": "今日已完成（跳过）",
   "Already completed": "今日已完成",
   "not applicable": "不适用",
+});
+
+Object.assign(FIELDS, {
+  "Available sign-in methods": "可用登录方式",
+  "Sign-in methods": "登录方式",
+  "App-only API exceptions enabled in browser mode": "浏览器模式下仅走 API 的任务例外",
+});
+
+Object.assign(SEGMENTS, {
+  "isFidoSupported set to false": "isFidoSupported 已设为 false",
+});
+
+Object.assign(VALUES, {
+  login: "登录",
+  rewards: "奖励",
+  account: "账号",
+  confirmed: "已确认",
+  "claimable-bonus-unknown": "可领取奖励未知",
+  "claim-balance-confirmed": "奖励余额已确认",
+  "rewards-desktop-app": "奖励桌面应用",
+  "android-browser": "安卓浏览器",
+  "no-protection-days": "无保护天数",
+  "mobile-not-applicable": "移动端不适用",
+  "app-api-exceptions": "应用接口例外",
+  "app-data-loaded": "应用数据已加载",
+  "app-data": "应用数据",
+  "visual-search": "图片搜索",
+  true: "是",
+  false: "否",
 });
