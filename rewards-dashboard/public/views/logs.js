@@ -1,5 +1,5 @@
 import * as U from "../util.js";
-import { t, tp, logTitle, logTitleHasLabel } from "../i18n/index.js";
+import { t, tp, logTitle, logTitleHasLabel, logMessage } from "../i18n/index.js";
 
 const MAX_LINES = 3000;
 const LEVEL_RANK = { debug: 0, info: 1, warn: 2, error: 3 };
@@ -19,8 +19,10 @@ const matches = (e) => {
   )
     return false;
   if (!filterText) return true;
-  const hay =
-    `${e.title || ""} ${e.platform || ""} ${e.accountName || e.user || e.email || e.userName || ""} ${e.message || ""}`.toLowerCase();
+  // 中文界面下同时匹配原文与译文，用户既可以搜 "points earned" 也可以搜 "积分"
+  const rawTitle = e.title || "";
+  const rawMessage = e.message || e.raw || "";
+  const hay = `${rawTitle} ${logTitle(rawTitle)} ${e.platform || ""} ${e.accountName || e.user || e.email || e.userName || ""} ${rawMessage} ${logMessage(rawMessage)}`.toLowerCase();
   return hay.includes(filterText);
 };
 
@@ -36,12 +38,16 @@ function lineHtml(e) {
   const account = accountName
     ? `<span class="log-account">${U.escapeHtml(accountName)}</span>`
     : "";
+  // 正文同理：显示译文，英文原文留在悬停提示里（命中字典时才有提示）
+  const rawMessage = e.message || e.raw || "";
+  const message = logMessage(rawMessage);
+  const msgTitle = message !== rawMessage ? ` title="${U.escapeAttr(rawMessage)}"` : "";
   return `<div class="log-line log-line--${U.escapeAttr(e.level)}">
         <span class="log-time">${U.escapeHtml(time)}</span>
         <span class="log-level log-level--${U.escapeAttr(e.level)}">${U.escapeHtml(e.level)}</span>
         <span class="log-tag"${tagTitle}>${U.escapeHtml(tag || "")}</span>
         ${account}
-        <span class="log-msg">${U.escapeHtml(e.message || e.raw || "")}</span>
+        <span class="log-msg"${msgTitle}>${U.escapeHtml(message || "")}</span>
     </div>`;
 }
 

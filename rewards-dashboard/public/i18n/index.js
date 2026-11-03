@@ -19,6 +19,7 @@
 import en from "./locales/en.js";
 import zhCN from "./locales/zh-CN.js";
 import { hasLogTitle, logTitleLabel } from "./logTitles.js";
+import { translateLogMessage } from "./logMessages.js";
 
 /** Every locale the dashboard can render. `dict` is a flat key/value map. */
 export const LOCALES = [
@@ -122,6 +123,17 @@ export function logTitle(title) {
 /** 该日志标题是否有译文（用于决定是否附带英文原文的悬停提示）。 */
 export function logTitleHasLabel(title) {
   return hasLogTitle(title);
+}
+
+/**
+ * 日志正文的展示文本（`Account balance observed | currentBalance=1`
+ * → `账户余额 | 当前余额=1`）。
+ *
+ * 与 logTitle 一样只影响渲染：搜索、解析、导出仍然用原始英文 `message`，
+ * 这样 parser 的 17 处正则匹配不会被翻译破坏。
+ */
+export function logMessage(message) {
+  return translateLogMessage(message, currentId);
 }
 
 export function getLocale() {
