@@ -33,7 +33,7 @@ const PHRASES = [
   ["Run started (pid {n}).", "运行已启动（进程 {n}）"],
   [
     "Browser mode enabled - starting desktop-first, trying Daily Set and More Rewards in the flyout before /earn fallbacks, and using rendered controls for web activities.",
-    "浏览器模式已启用：先走桌面端，在 flyout 里尝试每日任务与更多奖励，再回落到 /earn，网页任务使用页面渲染控件"
+    "浏览器模式已启用：先走桌面端，在 flyout 里尝试每日任务与更多奖励，再回落到 /earn，网页任务使用页面渲染控件",
   ],
 
   // ── 账号 ───────────────────────────────────────────────────────
@@ -57,7 +57,7 @@ const PHRASES = [
   ["Skipping Passkey prompt", "跳过 Passkey 提示"],
   [
     "Discarding saved cookies because the paired fingerprint is unavailable or incompatible",
-    "丢弃已保存的 Cookie：配对指纹缺失或不兼容"
+    "丢弃已保存的 Cookie：配对指纹缺失或不兼容",
   ],
   ["Entering email", "输入邮箱"],
   ["Email entered successfully", "邮箱已输入"],
@@ -80,10 +80,7 @@ const PHRASES = [
   ["Bing Search Streak completed today", "Bing 搜索连续天数今日已完成"],
   ["Daily Set Streak completed today", "每日任务连续天数今日已完成"],
   ["Bing App Streak completed today", "Bing 应用连续天数今日已完成"],
-  [
-    "Bing App Streak is already completed today; skipping Daily Check-In",
-    "Bing 应用连续天数今日已完成，跳过每日签到"
-  ],
+  ["Bing App Streak is already completed today; skipping Daily Check-In", "Bing 应用连续天数今日已完成，跳过每日签到"],
   ["Claimable bonus points could not be verified; skipping claim request", "无法确认可领取的奖励积分，跳过领取"],
   ["Bonus point claim", "奖励积分领取"],
   ["Search perk", "搜索加成"],
@@ -104,6 +101,63 @@ const PHRASES = [
   ["Scrolling results", "滚动搜索结果"],
   ["Clicked a result", "点击了一个结果"],
   ["Visit finished", "访问完成"],
+
+  // ── 启动说明（一次性长句）─────────────────────────────────────
+  ["Starting session for {s}", "为 {s} 启动会话"],
+  ["Read from Chromium", "读取自 Chromium"],
+  ["Sign-in evidence", "登录依据"],
+  ["Bing session verified successfully", "Bing 会话校验通过"],
+  ["App-only API exceptions enabled in browser mode: {rest}", "浏览器模式下仅走 API 的任务例外：{rest}"],
+
+  // ── 任务节奏 / 会话（调试）──────────────────────────────────────
+  ["Task delay checked", "任务间隔已检查"],
+  ["Task delay unchanged", "任务间隔未变"],
+  ["Task delay scheduled", "任务间隔已安排"],
+  ["Parsed streak protection", "解析连续保护"],
+  ["At Bing page: {rest}", "当前在 Bing 页面：{rest}"],
+  ["Daily streak reset", "每日连续天数重置"],
+  ["Chromium process closed", "Chromium 进程已关闭"],
+  ["Desktop signed in; session saved", "桌面端已登录，会话已保存"],
+  ["User data loaded", "用户数据已加载"],
+  ["No protection days remain; skipping", "没有剩余保护天数，跳过"],
+  ["Cleaned saved session", "已清理保存的会话"],
+  [
+    "Saved fingerprint locale or browser profile changed; generating a replacement for {s}",
+    "已存指纹的语言或浏览器配置已变化，为 {s} 重新生成",
+  ],
+  ["Passkey prompt skipped", "已跳过 Passkey 提示"],
+  ["KMSI prompt accepted", "已接受「保持登录」提示"],
+  ["Dismissed: cookie consent banner (Accept)", "已关闭 Cookie 同意横幅（接受）"],
+  ["Requesting app access token", "正在请求应用访问令牌"],
+  ["Auth URL constructed: {rest}", "已构造授权地址：{rest}"],
+  ["OAuth code resolved, exchanging for access token", "已获得授权码，正在换取访问令牌"],
+  ["App access token received", "已获取应用访问令牌"],
+  ["No eligible pending App Promotions are available", "没有可用的待处理应用推广任务"],
+  ["Skipping on mobile - desktop-only activity", "移动端跳过：该任务仅限桌面端"],
+  ["Points collected", "积分已统计"],
+  ["Sequential sessions: finish and close desktop before opening mobile", "顺序执行：桌面端完成并关闭后再打开移动端"],
+  [
+    "No visual-search streak in the snapshot - falling back to the activation offer",
+    "快照中没有图片搜索连续任务，回退到激活任务",
+  ],
+  ["Bing App Streak state", "Bing 应用连续天数状态"],
+  ["Daily Check-In", "每日签到"],
+  ["App data", "应用数据"],
+  ["Available sign-in methods: {rest}", "可用登录方式：{rest}"],
+  ["Launching bundled Chromium", "启动内置 Chromium"],
+  ["Restoring saved browser session", "恢复已保存的浏览器会话"],
+  [
+    "doVisualSearch will use the rendered Rewards activation control and Bing Visual Search UI.",
+    "doVisualSearch 将使用页面渲染的奖励激活控件与 Bing 图片搜索界面。",
+  ],
+  [
+    "doClaimBonusPoints always claims through the API in both modes.",
+    "doClaimBonusPoints 在两种模式下始终通过 API 领取。",
+  ],
+  [
+    "Browser mode enabled - starting desktop-first, trying Daily Set and More Rewards in the flyout before /earn fallbacks, and using rendered controls for web activities.",
+    "浏览器模式：先走桌面端，在 flyout 里尝试每日任务与更多奖励，再回落到 /earn，网页任务使用页面渲染控件",
+  ],
 
   // ── 调试：登录状态机 ───────────────────────────────────────────
   ["Current state: {state}", "当前状态：{state}"],
@@ -149,7 +203,7 @@ const PHRASES = [
   ["User data received", "已获取用户数据"],
   ["Found {n} incomplete quest(s)", "发现 {n} 个未完成打卡"],
   ["Run cancelled (code {n}).", "运行已取消（退出码 {n}）"],
-  ["Browser was already closed.", "浏览器已关闭"]
+  ["Browser was already closed.", "浏览器已关闭"],
 ];
 
 /** 登录状态机的枚举值。这类值只在固定短语里出现，因此单独映射，不做全局替换。 */
@@ -166,8 +220,67 @@ const STATES = {
   PASSKEY_ERROR: "Passkey 提示",
   LOGGED_IN: "已登录",
   ACCOUNT_LOCKED: "账号被锁定",
-  ERROR: "异常"
+  ERROR: "异常",
 };
+
+/** 状态/结果类枚举值（`status=partial`、`points earned: unverified`）。 */
+const VALUES = {
+  partial: "部分完成",
+  completed: "已完成",
+  complete: "已完成",
+  failed: "失败",
+  success: "成功",
+  skipped: "已跳过",
+  unavailable: "不可用",
+  incomplete: "未完成",
+  cancelled: "已取消",
+  running: "运行中",
+  idle: "空闲",
+  unknown: "未知",
+  unverified: "未确认",
+  no: "否",
+  yes: "是",
+  verified: "已验证",
+  enabled: "已启用",
+  disabled: "已禁用",
+  "disabled-root": "已禁用(root)",
+  true: "是",
+  false: "否",
+};
+
+/**
+ * `|` 分隔的自由文本片段（不是 key=value 形态）。
+ * 正文里这类片段最多，不翻就会出现「前半句中文、后半句英文」的夹生行。
+ */
+const SEGMENTS = {
+  "could not be enabled or verified": "无法启用或验证",
+  "No streak protection days remain": "没有剩余的连续保护天数",
+  "completion not confirmed": "完成状态未确认",
+  "claimable bonus unknown": "可领取奖励未知",
+  "points earned: unverified": "获得积分：未确认",
+  "Offer activation could not be started because its rendered control was not found":
+    "未找到渲染控件，无法开始任务激活",
+  "Offer activation could not be started": "无法开始任务激活",
+  "Request deadline exceeded": "请求超时",
+  "No search multiplier is offered to this account": "该账号没有搜索加成",
+  Punchcard: "打卡任务",
+  Punchcards: "打卡任务",
+  "Run cancelled": "运行已取消",
+  "Search perk": "搜索加成",
+  "Visual Search": "图片搜索",
+  "Bonus point claim": "奖励积分领取",
+  "User data source unavailable": "用户数据源不可用",
+  "could not be verified": "无法确认",
+  "unavailable (skipped)": "不可用（已跳过）",
+  "pending mobile sign-in": "等待移动端登录",
+  "browser and app Chrome versions follow this engine": "浏览器与应用端 Chrome 版本均跟随此引擎",
+  "These workers still obtain an app access token and use the Microsoft Rewards app-platform API.":
+    "这些任务仍会获取应用访问令牌并调用微软奖励应用平台 API。",
+};
+
+/** 形如 `activities: 1 completed, 3 incomplete, …` 的汇总片段。 */
+const COUNT_SUMMARY =
+  /^activities:\s*(\d+)\scompleted,\s*(\d+)\sincomplete,\s*(\d+)\sunavailable,\s*(\d+)\snot applicable$/;
 
 const FIELDS = {
   // 通用
@@ -230,7 +343,50 @@ const FIELDS = {
   attempts: "尝试次数",
   perSource: "分源",
   streakProtectionEnabled: "连续保护",
-  remainingDays: "剩余天数"
+  remainingDays: "剩余天数",
+
+  // 启动摘要里用冒号分隔的字段（`Accounts: 1`、`geoLocale: CN`）
+  Accounts: "账号数",
+  Clusters: "集群数",
+  geoLocale: "地区",
+  locale: "语言",
+  Mobile: "移动端",
+  Browser: "浏览器端",
+  App: "应用端",
+  isRealEdge: "真实 Edge",
+  headless: "无头模式",
+  clicks: "点击方式",
+  proxy: "代理",
+  tls: "TLS",
+  sandbox: "沙箱",
+  cookies: "Cookie 数",
+  origins: "来源数",
+  ageMinutes: "已存分钟",
+  profile: "配置",
+  engine: "引擎",
+  screen: "屏幕",
+  pixelRatio: "像素比",
+  persisted: "已保存",
+  platform: "平台",
+  timezone: "时区",
+  offset: "偏移(分)",
+  userDataSource: "用户数据源",
+  previous: "之前",
+  current: "当前",
+  evidence: "依据",
+  operationId: "操作ID",
+  lifetimeEarn: "累计积分",
+  session: "会话",
+  account: "账号",
+  dailySet: "每日任务",
+  more: "更多奖励",
+  bing: "Bing",
+  available: "可用",
+  toGo: "待获取",
+  lifetime: "累计",
+  streaks: "连续天数",
+  streakProtectionRemainingDays: "连续保护剩余天数",
+  "page.waitForFunction": "页面等待函数",
 };
 
 /** 把 `{n}` / `{s}` / `{rest}` 模板编译成可复用正则。 */
@@ -279,13 +435,114 @@ function renderPhrase(text) {
   return null;
 }
 
-/** 只翻 `name=value` 里的字段名，值保持原样。 */
-function renderFieldSegment(segment) {
-  const m = segment.match(/^([A-Za-z][\w.]*)(\s*=\s*)([\s\S]*)$/);
-  if (!m) return null;
-  const zh = FIELDS[m[1]];
-  if (!zh) return null;
-  return `${zh}${m[2]}${m[3]}`;
+/**
+ * 翻译一个值（`status=partial` 的 `partial`、`points earned: unverified` 的
+ * `unverified`、`reason="…"` 里带引号的整句）。
+ *
+ * 值里也可能嵌多句（用 `; ` 分隔），逐句尝试；都不认识就原样返回。
+ */
+function renderValue(value) {
+  if (!value) return value;
+  const quoted = /^"([\s\S]*)"$/.test(value);
+  const inner = quoted ? value.slice(1, -1) : value;
+
+  const tryOne = (text) => {
+    const trimmed = text.trim();
+    if (!trimmed) return null;
+    if (VALUES[trimmed] != null) return VALUES[trimmed];
+    if (SEGMENTS[trimmed] != null) return SEGMENTS[trimmed];
+    const counted = trimmed.match(COUNT_SUMMARY);
+    if (counted) {
+      const [, a, b, c, d] = counted;
+      return `任务：已完成 ${a}、未完成 ${b}、不可用 ${c}、不适用 ${d}`;
+    }
+    const phrase = renderPhrase(trimmed);
+    if (phrase != null) return phrase;
+    return null;
+  };
+
+  // 整值命中优先（保留未在词表里的部分不动）
+  const whole = tryOne(inner);
+  if (whole != null) return quoted ? `"${whole}"` : whole;
+
+  // 多句：逐句翻译，能翻的翻，翻不了的保留英文
+  if (inner.includes("; ")) {
+    let any = false;
+    const out = inner
+      .split("; ")
+      .map((part) => {
+        const one = tryOne(part);
+        if (one != null) {
+          any = true;
+          return one;
+        }
+        return part;
+      })
+      .join("；");
+    if (any) return quoted ? `"${out}"` : out;
+  }
+
+  return value;
+}
+
+/** 处理一段 `|` 分隔的内容：命中则返回中文，否则 null。 */
+function renderSegment(segment) {
+  const kv = segment.match(/^([A-Za-z][\w.]*)(\s*=\s*)([\s\S]*)$/);
+  if (kv) {
+    const zh = FIELDS[kv[1]];
+    const value = renderValue(kv[3]);
+    if (zh == null && value === kv[3]) return null;
+    return `${zh ?? kv[1]}${kv[2]}${value}`;
+  }
+
+  // 冒号形式（`Accounts: 1`、`geoLocale: CN`），键名不认识就原样保留，
+  // 避免把 `bing:3/7` 这类指标串改坏。
+  const colon = segment.match(/^([A-Za-z][\w.]*)\s*:\s*([\s\S]*)$/);
+  if (colon) {
+    const zh = FIELDS[colon[1]];
+    if (zh != null) return `${zh}：${renderValue(colon[2])}`;
+    return null;
+  }
+
+  const trimmed = segment.trim();
+  if (SEGMENTS[trimmed] != null) return SEGMENTS[trimmed];
+
+  const counted = trimmed.match(COUNT_SUMMARY);
+  if (counted) {
+    const [, a, b, c, d] = counted;
+    return `任务：已完成 ${a}、未完成 ${b}、不可用 ${c}、不适用 ${d}`;
+  }
+
+  const phrase = renderPhrase(trimmed);
+  return phrase;
+}
+
+/**
+ * 行首可能由多个句子拼成（启动说明类），整句未命中时按句子拆开逐句翻，
+ * 全部命中才算成功，避免出现「半句中文半句英文」。
+ */
+function renderHead(text) {
+  // 有些调试日志的正文就是一个状态枚举（如 LOGGED_IN），直接查表
+  if (STATES[text.trim()]) return STATES[text.trim()];
+
+  // 先按句拆分：否则像 "…: {rest}" 这样的贪婪模式会把后面整段一起吞掉
+  if (text.includes(". ")) {
+    const sentences = text.split(/(?<![.…])\.\s+/);
+    const parts = sentences.map((x) => renderPhrase(x) ?? SEGMENTS[x.trim()] ?? null);
+    if (parts.every((x) => x != null)) return parts.join(" ");
+    let any = false;
+    const merged = parts.map((x, i) => {
+      if (x != null) {
+        any = true;
+        return x;
+      }
+      return sentences[i];
+    });
+    if (any) return merged.join(" ");
+    return null;
+  }
+
+  return renderPhrase(text) ?? SEGMENTS[text.trim()] ?? null;
 }
 
 /**
@@ -304,15 +561,16 @@ export function translateLogMessage(message, localeId) {
   const parts = String(message).split(" | ");
   let changed = false;
 
-  const head = renderPhrase(parts[0]);
+  // 首段可能是 key=value / key: value，也可能是普通句子：先按分段试，失败再按短语
+  const head = renderSegment(parts[0]) ?? renderHead(parts[0]);
   if (head != null) {
     parts[0] = head;
     changed = true;
   }
 
   for (let i = 1; i < parts.length; i += 1) {
-    const seg = renderFieldSegment(parts[i]);
-    if (seg != null) {
+    const seg = renderSegment(parts[i]);
+    if (seg != null && seg !== parts[i]) {
       parts[i] = seg;
       changed = true;
     }
@@ -324,7 +582,35 @@ export function translateLogMessage(message, localeId) {
   if (!changed && !hasMarker) return message;
 
   // 配置覆盖那类标记顺手中文化（键名本身保持原样，见 docs/i18n.md 的术语约定）
-  return parts.join(" | ").replace(/\[set\]/g, "[已设置]").replace(/\(forced\)/g, "（强制）");
+  return parts
+    .join(" | ")
+    .replace(/\[set\]/g, "[已设置]")
+    .replace(/\(forced\)/g, "（强制）");
 }
+
+// ── 补充词条 ──────────────────────────────────────────────────────
+// 上游新增字段/句式时集中加在这里，避免在长表里改行导致格式错乱。
+Object.assign(FIELDS, {
+  rewardsMode: "运行模式",
+  enabled: "已启用",
+  modelDates: "模型日期",
+  warnings: "警告",
+  sections: "分区数",
+  promotionSections: "推广分区",
+  catalogItems: "目录条目",
+  orders: "订单数",
+  suggestions: "建议数",
+  "Accept-Language": "接受语言",
+});
+
+Object.assign(VALUES, { none: "无", browser: "浏览器模式", api: "接口模式" });
+
+Object.assign(SEGMENTS, {
+  "Dismissed: cookie consent banner (Accept)": "已关闭 Cookie 同意横幅（接受）",
+  "points earned: 0": "获得积分：0",
+  "These workers still obtain an app access token and use the Microsoft Rewards app-platform API.":
+    "这些任务仍会获取应用访问令牌并调用微软奖励应用平台 API。",
+  "true (cn.bing.com/)": "是（cn.bing.com）",
+});
 
 export default PHRASES;

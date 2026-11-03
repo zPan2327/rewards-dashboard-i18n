@@ -62,3 +62,43 @@ test("空值安全", async () => {
   assert.equal(translateLogMessage("", "zh-CN"), "");
   assert.equal(translateLogMessage(null, "zh-CN"), "");
 });
+
+// ── 双语模式契约：两个方向都不许互串 ────────────────────────────────
+
+test("English 模式：正文一律不改动（不出现中文）", async () => {
+  const { translateLogMessage } = await load();
+  const samples = [
+    "Applied 8 override(s).",
+    "Account balance observed | currentBalance=18457 | initialPoints=18457",
+    "Current state: LOGIN_PASSWORDLESS",
+    "Still waiting... (35/60 seconds elapsed)",
+  ];
+  for (const s of samples) {
+    const out = translateLogMessage(s, "en");
+    assert.equal(out, s, `English 模式不应改动: ${s}`);
+    assert.ok(!/[\u4e00-\u9fa5]/.test(out), `English 模式不应出现中文: ${out}`);
+  }
+});
+
+test("简体中文模式：常见日志不留整句英文", async () => {
+  const { translateLogMessage } = await load();
+  const samples = [
+    "Applied 8 override(s).",
+    "Account balance observed | currentBalance=18457 | initialPoints=18457",
+    "Current state: LOGIN_PASSWORDLESS",
+    "Task delay checked | activity=doDailySet | waitMs=10424",
+    "Dismissed: cookie consent banner (Accept)",
+  ];
+  for (const s of samples) {
+    const out = translateLogMessage(s, "zh-CN");
+    assert.notEqual(out, s, `简体中文模式应翻译: ${s}`);
+    assert.ok(/[\u4e00-\u9fa5]/.test(out), `简体中文模式应有中文: ${out}`);
+  }
+});
+
+test("简体中文模式：已经是中文的行保持原样（不二次处理）", async () => {
+  const { translateLogMessage } = await load();
+  const zh = "本轮结束 | 状态=部分完成 | 账户=1/1";
+  assert.equal(translateLogMessage(zh, "zh-CN"), zh);
+  assert.equal(translateLogMessage(zh, "en"), zh, "数据层是中文时，英文界面也不改它（由视图层隐藏）");
+});

@@ -1,5 +1,5 @@
 import * as U from "../util.js";
-import { t, tp, logTitle, logTitleHasLabel, logMessage } from "../i18n/index.js";
+import { t, tp, logTitle, logTitleHasLabel, logMessage, getLocale } from "../i18n/index.js";
 
 const MAX_LINES = 3000;
 const LEVEL_RANK = { debug: 0, info: 1, warn: 2, error: 3 };
@@ -13,6 +13,9 @@ let filterText = "";
 let autoscroll = true;
 
 const matches = (e) => {
+  // 机器人侧的中文摘要（ACCOUNT-END-摘要 等）是数据层固定的中文；英文界面下
+  // 隐藏它，避免英文界面里冒出中文。英文对照行（ACCOUNT-END / RUN-END）仍在。
+  if (getLocale() !== "zh-CN" && /-摘要$/.test(e.title || "")) return false;
   if (
     filterLevel !== "all" &&
     (LEVEL_RANK[e.level] ?? 1) < LEVEL_RANK[filterLevel]
