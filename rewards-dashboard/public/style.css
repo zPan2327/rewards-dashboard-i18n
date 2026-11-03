@@ -309,9 +309,17 @@ main {
   background: var(--surface);
   color: var(--text);
   cursor: pointer;
+  text-decoration: none;
 }
 .controls-group .icon-btn:hover {
   background: var(--hover);
+}
+
+/* GitHub 图标跟随主题：fill="currentColor" 继承 --text / --text-muted，
+   深浅色主题无需单独配色。 */
+.icon-github {
+  display: block;
+  flex: none;
 }
 
 .theme-select {
@@ -624,6 +632,21 @@ main {
   padding: 0 var(--space-20) var(--space-32);
   color: var(--text-muted);
   font-size: var(--font-xs);
+}
+
+/* 页脚的小 GitHub 标：与正文同色，hover 时跟 accent 走 */
+.foot-github {
+  display: inline-flex;
+  align-items: center;
+  margin-left: var(--space-8);
+  vertical-align: -2px;
+  color: inherit;
+  text-decoration: none;
+  opacity: 0.85;
+}
+.foot-github:hover {
+  color: var(--accent);
+  opacity: 1;
 }
 
 

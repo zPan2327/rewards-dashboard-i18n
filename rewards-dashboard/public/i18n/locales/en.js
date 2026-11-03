@@ -24,6 +24,7 @@ export default {
   "app.skipToMain": "Skip to main content",
   "app.sectionsLabel": "Dashboard sections",
   "app.themeLabel": "Theme",
+  "app.githubLink": "View this project on GitHub",
   "app.languageLabel": "Language",
   "app.footerDashboard": "Microsoft Rewards Dashboard:{version}",
   "app.footerScript": "Microsoft Rewards Script:{version}",

@@ -21,6 +21,7 @@ export default {
   "app.skipToMain": "跳到主要内容",
   "app.sectionsLabel": "仪表盘分区",
   "app.themeLabel": "主题",
+  "app.githubLink": "在 GitHub 上查看本项目",
   "app.languageLabel": "语言",
   "app.footerDashboard": "Microsoft Rewards 仪表盘：{version}",
   "app.footerScript": "Microsoft Rewards 脚本：{version}",
