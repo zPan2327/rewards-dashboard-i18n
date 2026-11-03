@@ -1,5 +1,5 @@
 import * as U from "../util.js";
-import { t, tp } from "../i18n/index.js";
+import { t, tp, logTitle, logTitleHasLabel } from "../i18n/index.js";
 
 const MAX_LINES = 3000;
 const LEVEL_RANK = { debug: 0, info: 1, warn: 2, error: 3 };
@@ -27,7 +27,11 @@ const matches = (e) => {
 function lineHtml(e) {
   const timestamp = e.ts || e.receivedAt;
   const time = timestamp ? U.fmtTime(timestamp) : "";
-  const tag = e.title || e.level;
+  // 标签按当前语言显示（LOGIN → 登录），但原始 title 保留在悬停提示里，
+  // 方便按英文关键词对照日志 / 搜索。
+  const rawTitle = e.title || "";
+  const tag = rawTitle ? logTitle(rawTitle) : e.level;
+  const tagTitle = rawTitle && logTitleHasLabel(rawTitle) ? ` title="${U.escapeAttr(rawTitle)}"` : "";
   const accountName = e.accountName || e.user || e.email || e.userName || "";
   const account = accountName
     ? `<span class="log-account">${U.escapeHtml(accountName)}</span>`
@@ -35,7 +39,7 @@ function lineHtml(e) {
   return `<div class="log-line log-line--${U.escapeAttr(e.level)}">
         <span class="log-time">${U.escapeHtml(time)}</span>
         <span class="log-level log-level--${U.escapeAttr(e.level)}">${U.escapeHtml(e.level)}</span>
-        <span class="log-tag">${U.escapeHtml(tag || "")}</span>
+        <span class="log-tag"${tagTitle}>${U.escapeHtml(tag || "")}</span>
         ${account}
         <span class="log-msg">${U.escapeHtml(e.message || e.raw || "")}</span>
     </div>`;

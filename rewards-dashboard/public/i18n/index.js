@@ -18,6 +18,7 @@
 
 import en from "./locales/en.js";
 import zhCN from "./locales/zh-CN.js";
+import { hasLogTitle, logTitleLabel } from "./logTitles.js";
 
 /** Every locale the dashboard can render. `dict` is a flat key/value map. */
 export const LOCALES = [
@@ -106,6 +107,21 @@ export function t(key, params) {
 /** Shorthand for count-based messages: tp("key", n) === t("key", { count: n }). */
 export function tp(key, count, params) {
   return t(key, { ...params, count });
+}
+
+/**
+ * 日志标题的展示标签（`LOGIN` → 登录）。
+ *
+ * 只影响渲染；日志数据里的 `title` 保持英文原样，解析与搜索依旧按英文匹配。
+ * 未收录的标题原样返回，因此机器人新增日志不会让界面出现空标签。
+ */
+export function logTitle(title) {
+  return logTitleLabel(title, currentId);
+}
+
+/** 该日志标题是否有译文（用于决定是否附带英文原文的悬停提示）。 */
+export function logTitleHasLabel(title) {
+  return hasLogTitle(title);
 }
 
 export function getLocale() {
