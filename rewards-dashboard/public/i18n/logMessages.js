@@ -103,8 +103,71 @@ const PHRASES = [
   ["Waiting before next search", "等待下一次搜索"],
   ["Scrolling results", "滚动搜索结果"],
   ["Clicked a result", "点击了一个结果"],
-  ["Visit finished", "访问完成"]
+  ["Visit finished", "访问完成"],
+
+  // ── 调试：登录状态机 ───────────────────────────────────────────
+  ["Current state: {state}", "当前状态：{state}"],
+  ["Processing state: {state}", "处理状态：{state}"],
+  ["State transition: {state} → {state}", "状态流转：{state} → {state}"],
+  ["Opening alternative sign-in methods", "打开其它登录方式"],
+  ["Handling passwordless authentication", "处理免密登录"],
+  ["Passwordless authentication requested", "已请求免密登录"],
+  ["Passwordless authentication completed successfully", "免密登录完成"],
+  ["Finalizing login", "登录收尾"],
+  ["Logged into Microsoft Rewards successfully", "已登录微软奖励"],
+  ["Starting Bing session verification", "开始校验 Bing 会话"],
+  ["Verifying Bing session", "校验 Bing 会话"],
+  ["Verification loop {n}/{n}", "校验循环 {n}/{n}"],
+  ["At Bing page: {s}", "当前在 Bing 页面：{s}"],
+  ["Acquiring rewards context", "获取奖励上下文"],
+  ["Bootstrapping rewards context", "初始化奖励上下文"],
+  ["Saving session", "保存会话"],
+  ["Login completed, session saved", "登录完成，会话已保存"],
+  ["Persisted live browser session", "已保存实时浏览器会话"],
+  ["Browser context ready", "浏览器上下文就绪"],
+  ["Created context", "已创建浏览器上下文"],
+  ["Detected bundled engine {s}", "检测到内置浏览器引擎 {s}"],
+  ["Modified request body: {rest}", "已修改请求体：{rest}"],
+  ["Email submitted", "邮箱已提交"],
+  ["Password submitted", "密码已提交"],
+
+  // ── 调试：页面解析 ─────────────────────────────────────────────
+  ["Concatenated flight chunks", "合并页面数据块"],
+  ["Parsed offers", "解析优惠项"],
+  ["Parsed offer ids", "解析任务 ID"],
+  ["Parsed streaks", "解析连续天数"],
+  ["Parsed account", "解析账号"],
+  ["Parsed quest children", "解析任务子项"],
+  ["Snapshot complete", "快照完成"],
+  ["Read rendered Bing Rewards flyout", "读取 flyout 渲染结果"],
+  ["Read rendered /earn cards", "读取 /earn 卡片"],
+  ["Rendered Daily Set readiness unavailable; using displayed cards only", "无法确认每日任务就绪状态，改用已显示卡片"],
+  ["Using rendered Daily Set", "使用已渲染的每日任务"],
+  ["No search multiplier is available", "当前没有搜索加成"],
+  ["Mobile: skip (disabled, quota unavailable)", "移动端：跳过（已禁用或配额不可用）"],
+  ["Quest progress", "打卡进度"],
+  ["User data received", "已获取用户数据"],
+  ["Found {n} incomplete quest(s)", "发现 {n} 个未完成打卡"],
+  ["Run cancelled (code {n}).", "运行已取消（退出码 {n}）"],
+  ["Browser was already closed.", "浏览器已关闭"]
 ];
+
+/** 登录状态机的枚举值。这类值只在固定短语里出现，因此单独映射，不做全局替换。 */
+const STATES = {
+  EMAIL_INPUT: "邮箱输入",
+  PASSWORD_INPUT: "密码输入",
+  FOOTER_ACTION: "页脚操作",
+  SIGN_IN_METHOD_PICKER: "登录方式选择",
+  LOGIN_PASSWORDLESS: "免密登录",
+  LOGIN_TOTP: "验证码登录",
+  LOGIN_CODE: "登录验证码",
+  RECOVERY_EMAIL: "备用邮箱验证",
+  KMSI_PROMPT: "保持登录提示",
+  PASSKEY_ERROR: "Passkey 提示",
+  LOGGED_IN: "已登录",
+  ACCOUNT_LOCKED: "账号被锁定",
+  ERROR: "异常"
+};
 
 const FIELDS = {
   // 通用
@@ -157,7 +220,17 @@ const FIELDS = {
   expectedCards: "预期卡片",
   renderedCards: "已渲染卡片",
   maxSearches: "最大搜索次数",
-  completedSearches: "已完成搜索"
+  completedSearches: "已完成搜索",
+  offers: "优惠项",
+  offerIds: "任务ID列表",
+  quests: "任务数",
+  cards: "卡片",
+  incomplete: "未完成",
+  quota: "配额",
+  attempts: "尝试次数",
+  perSource: "分源",
+  streakProtectionEnabled: "连续保护",
+  remainingDays: "剩余天数"
 };
 
 /** 把 `{n}` / `{s}` / `{rest}` 模板编译成可复用正则。 */
@@ -173,6 +246,10 @@ function compile(pattern) {
       slots.push("s");
       source += "(\\S+)";
       i += 2;
+    } else if (pattern.startsWith("{state}", i)) {
+      slots.push("state");
+      source += "([A-Z][A-Z0-9_]*)";
+      i += 6;
     } else if (pattern.startsWith("{rest}", i)) {
       slots.push("rest");
       source += "([\\s\\S]+)";
@@ -192,8 +269,12 @@ function renderPhrase(text) {
     const m = text.match(re);
     if (!m) continue;
     let i = 0;
-    // 中文模板里的占位符按出现顺序依次替换为捕获到的值
-    return zh.replace(/\{(?:n|s|rest)\}/g, () => m[++i] ?? "");
+    // 占位符按出现顺序依次替换；{state} 额外过一次枚举映射
+    return zh.replace(/\{(?:n|s|rest|state)\}/g, () => {
+      i += 1;
+      const value = m[i] ?? "";
+      return slots[i - 1] === "state" ? STATES[value] || value : value;
+    });
   }
   return null;
 }
