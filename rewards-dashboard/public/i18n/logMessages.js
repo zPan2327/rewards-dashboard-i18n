@@ -479,6 +479,13 @@ function renderValue(value) {
   const whole = tryOne(inner);
   if (whole != null) return quoted ? `"${whole}"` : whole;
 
+  // 取值里还嵌着 ` | `（被引号包住的整条错误）：逐段翻译
+  if (inner.includes(" | ") && !inner.includes("; ")) {
+    const segs = inner.split(" | ");
+    const out = segs.map((seg) => tryOne(seg.trim()) ?? seg);
+    if (out.some((x, i) => x !== segs[i])) return quoted ? `"${out.join(" | ")}"` : out.join(" | ");
+  }
+
   // 多句：逐句翻译，能翻的翻，翻不了的保留英文
   if (inner.includes("; ")) {
     let any = false;
@@ -604,21 +611,77 @@ function translateLeadingLabel(message) {
  * 中文摘要行里的英文取值：`原因=Visual Search: …; Bonus point claim: …`。
  * 只按 `; ` 拆开逐段走片段表，命不中保持原样。
  */
+/**
+ * 按 ` | ` 切段，但**不切引号内部**。
+ * 真实日志里 `reason="… | query=… | page.waitForURL: …"` 会把分隔符埋进引号，
+ * 简单 split 会把一条日志切成碎块，后面的字段名就翻不了了。
+ */
+/**
+ * 取值里中英混排（`reason="Punchcard child: step incomplete; … | query="九寨沟" | …"`）：
+ * 按 `; ` 和 ` | ` 拆开、保留分隔符，只翻不含中文的子段。
+ */
+function translateValueParts(raw) {
+  return raw
+    .split(/(; |\s\|\s)/)
+    .map((tok) => {
+      if (tok === "; " || /\s\|\s/.test(tok) && tok.trim() === "|") return tok;
+      if (/[\u4e00-\u9fa5]/.test(tok)) return tok;
+      return renderSegment(tok.trim()) ?? SEGMENTS[tok.trim()] ?? renderPhrase(tok.trim()) ?? tok;
+    })
+    .join("");
+}
+
+function splitSegments(message) {
+  const out = [];
+  let cur = "";
+  let inQuote = false;
+  for (let i = 0; i < message.length; i += 1) {
+    if (message[i] === '"') inQuote = !inQuote;
+    if (!inQuote && message.startsWith(" | ", i)) {
+      out.push(cur);
+      cur = "";
+      i += 2;
+      continue;
+    }
+    cur += message[i];
+  }
+  out.push(cur);
+  return out;
+}
+
 function translateMixedValues(message) {
-  const parts = String(message).split(" | ");
+  const parts = splitSegments(String(message));
   let changed = false;
   const out = parts.map((part) => {
+    // key=value：只翻纯英文的值，中文值原样保留
     const eq = part.match(/^([^=]+)=([\s\S]*)$/);
-    if (!eq) return part;
-    const raw = eq[2];
-    if (!raw || /[\u4e00-\u9fa5]/.test(raw)) return part;
-    const zh = raw
-      .split("; ")
-      .map((piece) => renderSegment(piece.trim()) ?? SEGMENTS[piece.trim()] ?? piece)
-      .join("；");
-    if (zh === raw) return part;
-    changed = true;
-    return `${eq[1]}=${zh}`;
+    if (eq) {
+      const raw = eq[2];
+      if (!raw) return part;
+      // 取值里可能中英混排：先剥掉外层引号再逐段翻，含中文的子段原样保留
+      const quoted = /^"[\s\S]*"$/.test(raw);
+      const inner = quoted ? raw.slice(1, -1) : raw;
+      let zh = /[\u4e00-\u9fa5]/.test(inner) ? translateValueParts(inner) : renderValue(inner);
+      if (quoted) zh = `"${zh}"`;
+      const key = FIELDS[eq[1]];
+      if (zh === raw && key == null) return part;
+      changed = true;
+      return `${key ?? eq[1]}=${zh}`;
+    }
+    // 普通片段：已含中文只翻开头标签（`More promotions: "设置目标"`），
+    // 纯英文走完整翻译链；否则混排行会整条漏译。
+    if (/[\u4e00-\u9fa5]/.test(part)) {
+      const label = splitLabel(part);
+      if (label == null) return part;
+      changed = true;
+      return `${label.zh}：${label.value}`;
+    }
+    const zh = renderSegment(part) ?? renderHead(part);
+    if (zh != null && zh !== part) {
+      changed = true;
+      return zh;
+    }
+    return part;
   });
   if (changed) return out.join(" | ");
   return translateLeadingLabel(message);
@@ -627,9 +690,13 @@ function translateMixedValues(message) {
 /** 中文摘要里偶尔还挂着英文的计数尾巴（`任务数：1 completed, 3 incomplete, …`）。 */
 const COUNT_TAIL =
   /(\d+)\s+completed,\s*(\d+)\s+incomplete,\s*(\d+)\s+unavailable,\s*(\d+)\s+not applicable/g;
+/** Playwright 超时文案（`page.waitForURL: Timeout 42910ms exceeded.`）里的通用短语。 */
+const TIMEOUT_TAIL = /Timeout (\d+)ms exceeded\.?/g;
 
 function localizeCounts(text) {
-  return text.replace(COUNT_TAIL, "已完成 $1、未完成 $2、不可用 $3、不适用 $4");
+  return text
+    .replace(COUNT_TAIL, "已完成 $1、未完成 $2、不可用 $3、不适用 $4")
+    .replace(TIMEOUT_TAIL, "超时 $1ms");
 }
 
 /**
@@ -645,7 +712,7 @@ export function translateLogMessage(message, localeId) {
   // 已经是中文的行（机器人侧的中文摘要）只处理其中的英文标签/取值，避免二次处理
   if (/[\u4e00-\u9fa5]/.test(message)) return localizeCounts(translateMixedValues(message));
 
-  const parts = String(message).split(" | ");
+  const parts = splitSegments(String(message));
   let changed = false;
 
   // 首段可能是 key=value / key: value，也可能是普通句子：先按分段试，失败再按短语
@@ -827,3 +894,148 @@ Object.assign(FIELDS, {
   route: "路由",
   build: "构建版本",
 });
+
+// ── 实机日志（2026-11-03 第 4 批）补齐 ────────────────────────────
+// 目标：除专业名词（SIGTERM / page.waitForURL / browserContext / config.json 等）外全部中文化。
+[
+  // 启动与配置
+  ["No config.json found - generated from built-in defaults at {s}", "未找到 config.json，已按内置默认值生成于 {s}"],
+  ["config.json updated via API (PATCH); applies on the next run.", "config.json 已通过 API 更新（PATCH），下次运行生效"],
+  ["No saved browser session found; login may be required", "未找到已保存的浏览器会话，可能需要登录"],
+  ["Starting account: {rest}", "开始处理账户：{rest}"],
+  ["Desktop browser started | {rest}", "桌面浏览器已启动 | {rest}"],
+  ["Mobile browser started | {rest}", "移动端浏览器已启动 | {rest}"],
+  ["Waiting {n} seconds before starting the next account ({s})", "等待 {n} 秒后开始下一个账户（{s}）"],
+
+  // 运行生命周期
+  ["Run started (pid {n}).", "运行已启动（进程号 {n}）"],
+  ["Stopping run (SIGTERM)…", "正在停止运行（SIGTERM）…"],
+  ["SIGTERM received; closing sessions and flushing output", "收到 SIGTERM，正在关闭会话并刷新输出"],
+  ["Run cancelled (code {n}).", "运行已取消（代码 {n}）"],
+  ["Run partial (code {n}).", "运行部分完成（代码 {n}）"],
+  ["Run completed (code {n}).", "运行完成（代码 {n}）"],
+  ["An error occurred: Run cancelled", "发生错误：运行已取消"],
+  ["Fatal error: Run cancelled", "严重错误：运行已取消"],
+  ["Failed to save session: {rest}", "保存会话失败：{rest}"],
+  ["Completed all accounts", "全部账户已处理完毕"],
+
+  // 登录
+  ["Unknown state at {rest}, waiting", "在 {rest} 遇到未知状态，等待中"],
+
+  // 搜索
+  ["Starting Bing searches", "开始 Bing 搜索"],
+  ["Search points remaining", "剩余搜索积分"],
+  ["Searching", "正在搜索"],
+  ["Search attempt {n}/{n} failed; reloading Bing before retry", "第 {n}/{n} 次搜索失败，重试前重新加载 Bing"],
+  ["Search attempt {n}/{n} failed", "第 {n}/{n} 次搜索失败"],
+  ["Bing search failed after {n} attempt(s)", "Bing 搜索重试 {n} 次后仍失败"],
+  ["Search session error", "搜索会话出错"],
+  ["Desktop search failed", "桌面端搜索失败"],
+  ["Desktop search quota", "桌面端搜索配额"],
+  ["Mobile search quota", "移动端搜索配额"],
+  ["quota unavailable", "配额不可用"],
+
+  // 阅读赚积分
+  ["Browser Read to Earn unavailable; trying the app API instead", "浏览器端「阅读赚积分」不可用，改用应用 API"],
+  ["Using Read to Earn API fallback", "改用「阅读赚积分」API 兜底"],
+  ["Starting Read to Earn", "开始「阅读赚积分」"],
+  ["Read to Earn points earned", "「阅读赚积分」获得积分"],
+  ["Waiting before next read report", "下次阅读上报前等待"],
+  ["Read to Earn", "阅读赚积分"],
+
+  // 打卡 / 促销 / 奖励
+  ["Punchcard child", "打卡子任务"],
+  ["step incomplete", "子步骤未完成"],
+  ["Started solving \"More Promotions\" items", "开始处理「更多促销」条目"],
+  ["More promotions: {rest}", "更多促销：{rest}"],
+  ["unsupported promotion type", "不支持的促销类型"],
+  ["Microsoft bot-score warning detected", "检测到微软机器人评分警告"],
+  ["No further available steps", "没有更多可用步骤"],
+  ["remaining steps will be checked on the next run", "剩余步骤将在下次运行时检查"],
+  ["Mobile opened for: {rest}", "已为 {rest} 打开移动端"],
+  ["points earned: {n}", "获得积分：{n}"],
+  ["points earned: {s}", "获得积分：{s}"],
+  ["page.waitForURL: Timeout {n}ms exceeded.", "page.waitForURL：超时 {n}ms"],
+  ["locator.waitFor: Timeout {n}ms exceeded.", "locator.waitFor：超时 {n}ms"],
+].forEach(([pattern, zh]) => PHRASES.push([pattern, zh]));
+COMPILED.length = 0;
+for (const [pattern, zh] of PHRASES) COMPILED.push({ ...compile(pattern), zh });
+
+// 组合式原因（`reason="A: b; C: d"`）按 `片段名: 片段` 拼装，两个词典都要能查到
+Object.assign(SEGMENTS, {
+  "Punchcard child": "打卡子任务",
+  "step incomplete": "子步骤未完成",
+  "Mobile search quota": "移动端搜索配额",
+  "Desktop search quota": "桌面端搜索配额",
+  "quota unavailable": "配额不可用",
+  "claimable bonus unknown": "可领取奖励未知",
+  "Microsoft bot-score warning detected": "检测到微软机器人评分警告",
+  "unsupported promotion type": "不支持的促销类型",
+  "Streak protection": "连续保护",
+  "could not be enabled or verified": "无法启用或确认",
+  "Bonus point claim": "奖励积分领取",
+  "Claimable bonus points could not be verified; skipping claim request":
+    "可领取奖励积分无法确认，跳过领取请求",
+  "Search": "搜索",
+  "failed": "失败",
+  "completion not confirmed": "完成状态未确认",
+  "Mobile opened for": "已为…打开移动端",
+});
+
+Object.assign(FIELDS, {
+  "More promotions": "更多促销",
+  search: "第几次搜索",
+  query: "查询词",
+  language: "语言",
+  source: "词源",
+  progressCheckEvery: "进度检查间隔",
+  browserReads: "浏览器阅读数",
+  browserReason: "浏览器原因",
+  transport: "通道",
+  currentBalance: "当前余额",
+  previousBalance: "运行前余额",
+  pointsGained: "获得积分",
+  runtimeMinutes: "耗时分钟",
+  durationSeconds: "用时秒",
+  accountsProcessed: "已处理账户数",
+  lockedOrDisabled: "已锁定或禁用",
+  remainingSteps: "剩余步骤",
+  waitMs: "等待毫秒",
+  edge: "Edge 端",
+  desktop: "桌面端",
+  mobile: "移动端",
+  read: "阅读次数",
+  report: "上报次数",
+  browserSession: "浏览器会话",
+});
+
+Object.assign(VALUES, {
+  unknown: "未知",
+  api: "接口模式",
+  browser: "浏览器模式",
+  partial: "部分完成",
+  complete: "完成",
+  cancelled: "已取消",
+  skipped: "已跳过",
+  unavailable: "不可用",
+});
+
+Object.assign(FIELDS, {
+  remaining: "剩余",
+  Call: "调用日志",
+});
+
+Object.assign(SEGMENTS, {
+  "Failed to find browser context": "找不到对应的浏览器上下文",
+  "Call log": "调用日志",
+  "waiting for locator": "正在等待选择器",
+});
+
+// Playwright 关闭会话时的报错尾巴（id 为十六进制串）
+PHRASES.unshift(
+  ["Failed to find browser context for id {s}", "找不到 id {s} 对应的浏览器上下文"],
+  ["Failed to save session: Error: browserContext.cookies: Protocol error (Storage.getCookies): Failed to find browser context for id {s}",
+    "保存会话失败：Error: browserContext.cookies: Protocol error (Storage.getCookies)：找不到 id {s} 对应的浏览器上下文"],
+);
+COMPILED.length = 0;
+for (const [pattern, zh] of PHRASES) COMPILED.push({ ...compile(pattern), zh });

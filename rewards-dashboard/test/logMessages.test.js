@@ -151,3 +151,48 @@ test("带引号的 reason 值也要逐段翻译", async () => {
   );
   assert.ok(out.includes('原因="图片搜索：可领取奖励未知；奖励积分领取：可领取奖励未知"'), out);
 });
+
+// ── 实机第 4 批：引号内分隔符 / 中英混排取值 / 贪婪 rest ─────────────
+
+test("引号内的 ` | ` 不能把分段切碎（reason 内嵌整条错误）", async () => {
+  const { translateLogMessage } = await load();
+  const out = translateLogMessage(
+    'Finished account: a@b.com | pointsGained=17 | status=partial | reason="Punchcard child: step incomplete; Search: Bing search failed after 5 attempt(s) | query="九寨沟" | page.waitForURL: Timeout 42910ms exceeded." | activities: 3 completed, 5 incomplete, 2 unavailable, 1 not applicable',
+    "zh-CN",
+  );
+  // 引号外的字段名必须翻，引号内嵌的 ` | ` 不能切碎
+  assert.ok(out.includes("获得积分=17"), out);
+  assert.ok(out.includes("状态=部分完成"), out);
+  assert.ok(out.includes("原因="), out);
+  assert.ok(out.includes("打卡子任务：子步骤未完成"), out);
+  assert.ok(out.includes("任务数：已完成 3"), out);
+});
+
+test("中英混排的取值逐段翻译，中文子段原样保留", async () => {
+  const { translateLogMessage } = await load();
+  const out = translateLogMessage(
+    'reason="Mobile search quota: quota unavailable; Search: Bing search failed | query="九寨沟" | page.waitForURL: Timeout 42910ms exceeded."',
+    "zh-CN",
+  );
+  assert.ok(out.includes("移动端搜索配额：配额不可用"), out);
+  assert.ok(out.includes("九寨沟"), "中文查询词必须原样保留");
+  assert.ok(out.includes("page.waitForURL：超时 42910ms"), out);
+});
+
+test("阅读赚积分 / 搜索配额 / 打卡子任务等新模板", async () => {
+  const { translateLogMessage } = await load();
+  const samples = [
+    ["Read to Earn | completed | points earned: 9", "阅读赚积分"],
+    ["Mobile search quota | completion not confirmed | quota unavailable", "移动端搜索配额"],
+    ["Punchcard child | completion not confirmed | step incomplete", "打卡子任务"],
+    ["Stopping run (SIGTERM)…", "正在停止运行"],
+    ["SIGTERM received; closing sessions and flushing output", "正在关闭会话"],
+    ["Unknown state at account.live.com/interrupt/passkey/enroll, waiting", "遇到未知状态"],
+    ["Waiting 142.9 seconds before starting the next account (a@b.com)", "等待 142.9 秒后开始下一个账户"],
+    ["Microsoft bot-score warning detected", "检测到微软机器人评分警告"],
+  ];
+  for (const [raw, want] of samples) {
+    const out = translateLogMessage(raw, "zh-CN");
+    assert.ok(out.includes(want), `${raw} => ${out}`);
+  }
+});
