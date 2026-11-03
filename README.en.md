@@ -16,6 +16,12 @@ following upstream without re-translating anything:
   exactly like upstream;
 - Simplified Chinese covers **every** interface string, including the 13 theme names and
   all status labels; your choice is **remembered** (reloads and browser restarts keep it);
+- **Log messages and titles are localized too** (since `v2.0.1-i18n.2`): a presentation-layer
+  dictionary renders them from phrase templates, field names and enum values, covering 94%
+  of real logs under a strict measure (warn: 100%). The data layer keeps the English
+  originals so you can still paste them into an issue; the bilingual contract is strict:
+  English mode never shows Chinese, Chinese mode never shows English sentences. See
+  [docs/i18n.md](./docs/i18n.md);
 - Chinese wording was rewritten for the real "dashboard + Microsoft Rewards" context, with
   one consistent glossary across the whole project;
 - Every UI string lives in a **language resource addressed by stable translation keys** —
@@ -30,6 +36,20 @@ following upstream without re-translating anything:
 - **Nothing else is changed**: API paths and request/response shapes, authentication,
   data handling, scheduler/cron, bot control and the Docker deployment all stay exactly
   as upstream.
+
+### Companion script (recommended)
+
+This repo is the **official companion dashboard** for
+**[zPan2327/Microsoft-Rewards-Script-Ch](https://github.com/zPan2327/Microsoft-Rewards-Script-Ch)**
+(the Simplified Chinese edition of the Microsoft Rewards automation script). Use them together:
+
+| Repository | Responsibility |
+| --- | --- |
+| [Microsoft-Rewards-Script-Ch](https://github.com/zPan2327/Microsoft-Rewards-Script-Ch) | The automation script: China hot-search queries, WeChat push, Chinese run summaries — log bodies stay in the English original |
+| **rewards-dashboard-i18n** (this repo) | The dashboard: Chinese for the UI **and** the logs (presentation-layer dictionary; data untouched) |
+
+Version pairing and install steps:
+[release notes for `5.0.0-ch.2`](https://github.com/zPan2327/Microsoft-Rewards-Script-Ch/blob/v5-china/docs/release-notes-v5.0.0-ch.2.md).
 
 > The documents under `docs/` are written in Chinese. This file is the English guide
 > for this fork; the Chinese original is [README.md](./README.md).

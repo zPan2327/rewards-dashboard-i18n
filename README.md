@@ -11,12 +11,28 @@
 
 - 完整保留英文原版，**默认语言为简体中文**（右上角可一键切回 English，英文模式与上游完全一致）；
 - **简体中文**覆盖全部界面文案，包括 13 个主题名称与所有状态标签；选择会**记住**（刷新、重开浏览器都不丢）；
+- **日志正文与标题也中文化**（`v2.0.1-i18n.2` 起）：展示层字典按短语模板 + 字段名 + 枚举值渲染，
+  实机日志严格口径覆盖 94%（warn 100%）；数据层仍是英文原文，可直接复制到 issue 排查；
+  双语模式契约：English 不出中文、简体中文不出英文整句；详见 [docs/i18n.md](./docs/i18n.md)；
 - 中文文案针对「仪表盘 + Microsoft Rewards」的真实语境重写，术语全项目统一；
 - 界面文案全部抽成**独立的语言资源 + 稳定的 translation key**，业务代码里不再硬编码任何一种语言；
 - 缺少译文时**自动回退英文**，绝不会出现 `undefined` 或空白；
 - 内置 **翻译自检工具**，同步上游新版本时能一眼看出「新增了哪些待翻译文案 / 哪些 key 的占位符对不上」；
 - **另外独立维护了一处 `lib/parser.js` 的中文日志解析补丁**，让总览页能正确解析中文日志（与本仓库的 i18n 无关）：见 [docs/parser-zh.md](./docs/parser-zh.md)；
 - **除语言相关内容、以及上面那处 `lib/parser.js` 中文日志解析补丁外，没有改动任何功能、接口或数据结构**：API 路径与请求/响应格式、鉴权逻辑、数据处理、Scheduler/Cron、Rewards Script 控制、Docker 部署方式全部保持原样；
+
+### 配套脚本（推荐）
+
+本仓库是 **[zPan2327/Microsoft-Rewards-Script-Ch](https://github.com/zPan2327/Microsoft-Rewards-Script-Ch)**
+（Microsoft Rewards 自动化脚本 · 中文版）的**官方配套仪表盘**，两者配套使用：
+
+| 仓库 | 职责 |
+| --- | --- |
+| [Microsoft-Rewards-Script-Ch](https://github.com/zPan2327/Microsoft-Rewards-Script-Ch) | 自动化脚本：中国热搜查询源、微信推送、中文运行摘要；日志正文保持英文原文 |
+| **rewards-dashboard-i18n**（本仓库） | 仪表盘：界面与日志的中文化（展示层字典，不改数据） |
+
+版本配套关系与安装步骤见
+[脚本侧的发布说明](https://github.com/zPan2327/Microsoft-Rewards-Script-Ch/blob/v5-china/docs/release-notes-v5.0.0-ch.2.md)。
 
 > English readers: see **[README.en.md](./README.en.md)** — the same guide in English.
 
