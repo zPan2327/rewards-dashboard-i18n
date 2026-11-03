@@ -591,6 +591,13 @@ export function translateLogMessage(message, localeId) {
 // ── 补充词条 ──────────────────────────────────────────────────────
 // 上游新增字段/句式时集中加在这里，避免在长表里改行导致格式错乱。
 Object.assign(FIELDS, {
+  resetAt: "重置时间",
+  local: "本地时间",
+  remainingMinutes: "剩余分钟",
+  explore: "探索任务",
+  completedSearches: "已完成搜索",
+  maxSearches: "最大搜索次数",
+  offerId2: "任务ID",
   rewardsMode: "运行模式",
   enabled: "已启用",
   modelDates: "模型日期",
