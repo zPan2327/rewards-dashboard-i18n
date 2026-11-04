@@ -33,7 +33,7 @@ const PHRASES = [
   ["Run started (pid {n}).", "运行已启动（进程 {n}）"],
   [
     "Browser mode enabled - starting desktop-first, trying Daily Set and More Rewards in the flyout before /earn fallbacks, and using rendered controls for web activities.",
-    "浏览器模式已启用：先走桌面端，在 flyout 里尝试每日任务与更多奖励，再回落到 /earn，网页任务使用页面渲染控件",
+    "浏览器模式已启用：先走桌面端，在浮出面板里尝试每日任务与更多奖励，再回落到 /earn，网页任务使用页面渲染控件",
   ],
 
   // ── 账号 ───────────────────────────────────────────────────────
@@ -73,9 +73,9 @@ const PHRASES = [
   ["No rendered visual-search activation control matched", "未找到可用的图片搜索激活控件"],
 
   // ── 任务 ───────────────────────────────────────────────────────
-  ["Starting flyout task pass", "开始 flyout 任务轮"],
+  ["Starting flyout task pass", "开始浮出面板任务轮次"],
   ["Starting /earn task pass for remaining tasks", "开始 /earn 任务轮（剩余任务）"],
-  ["Completed flyout and earn task passes", "flyout 与 /earn 任务轮完成"],
+  ["Completed flyout and earn task passes", "浮出面板与 /earn 任务轮次已完成"],
   ["Waiting before next task", "等待下一个任务"],
   ["Bing Search Streak completed today", "Bing 搜索连续天数今日已完成"],
   ["Daily Set Streak completed today", "每日任务连续天数今日已完成"],
@@ -156,7 +156,7 @@ const PHRASES = [
   ],
   [
     "Browser mode enabled - starting desktop-first, trying Daily Set and More Rewards in the flyout before /earn fallbacks, and using rendered controls for web activities.",
-    "浏览器模式：先走桌面端，在 flyout 里尝试每日任务与更多奖励，再回落到 /earn，网页任务使用页面渲染控件",
+    "浏览器模式：先走桌面端，在浮出面板里尝试每日任务与更多奖励，再回落到 /earn，网页任务使用页面渲染控件",
   ],
 
   // ── 调试：登录状态机 ───────────────────────────────────────────
@@ -193,7 +193,7 @@ const PHRASES = [
   ["Parsed account", "解析账号"],
   ["Parsed quest children", "解析任务子项"],
   ["Snapshot complete", "快照完成"],
-  ["Read rendered Bing Rewards flyout", "读取 flyout 渲染结果"],
+  ["Read rendered Bing Rewards flyout", "读取浮出面板渲染结果"],
   ["Read rendered /earn cards", "读取 /earn 卡片"],
   ["Rendered Daily Set readiness unavailable; using displayed cards only", "无法确认每日任务就绪状态，改用已显示卡片"],
   ["Using rendered Daily Set", "使用已渲染的每日任务"],
