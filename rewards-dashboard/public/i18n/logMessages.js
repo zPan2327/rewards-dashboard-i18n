@@ -47,7 +47,7 @@ const PHRASES = [
   ["Starting login process", "开始登录"],
   ["Successfully logged in", "登录成功"],
   ["Selecting Microsoft Authenticator sign-in", "选择 Microsoft Authenticator 登录"],
-  ["Please approve login on your authenticator app", "请在 Authenticator 上批准登录"],
+  ["Please approve login on your authenticator app", "请在身份验证器应用中批准登录"],
   ["Waiting for approval... (timeout after {n} seconds)", "等待批准…（{n} 秒后超时）"],
   ["Still waiting... ({n}/{n} seconds elapsed)", "仍在等待…（{n}/{n} 秒）"],
   ["Approval detected", "已检测到批准"],
@@ -625,6 +625,9 @@ function translateValueParts(raw) {
     .split(/(; |\s\|\s)/)
     .map((tok) => {
       if (tok === "; " || /\s\|\s/.test(tok) && tok.trim() === "|") return tok;
+      // 内嵌的 key=value 片段：值含中文时也要把键名翻掉
+      const kv = /^([A-Za-z][\w.]*)=(.*)$/.exec(tok.trim());
+      if (kv && FIELDS[kv[1]] && /[\u4e00-\u9fa5]/.test(kv[2])) return `${FIELDS[kv[1]]}=${kv[2]}`;
       if (/[\u4e00-\u9fa5]/.test(tok)) return tok;
       return renderSegment(tok.trim()) ?? SEGMENTS[tok.trim()] ?? renderPhrase(tok.trim()) ?? tok;
     })
@@ -691,12 +694,37 @@ function translateMixedValues(message) {
 const COUNT_TAIL =
   /(\d+)\s+completed,\s*(\d+)\s+incomplete,\s*(\d+)\s+unavailable,\s*(\d+)\s+not applicable/g;
 /** Playwright 超时文案（`page.waitForURL: Timeout 42910ms exceeded.`）里的通用短语。 */
-const TIMEOUT_TAIL = /Timeout (\d+)ms exceeded\.?/g;
+const TIMEOUT_TAIL = /Timeout ([\d.]+)ms exceeded\.?/g;
+
+/** 摘要行里 `原因=` 的值会被内嵌的 ` | ` 切断，这里做最后一轮定点替换。 */
+const REASON_FIXES = [
+  [/Mobile search quota: quota unavailable/g, "移动端搜索配额：配额不可用"],
+  [/Desktop search quota: quota unavailable/g, "桌面端搜索配额：配额不可用"],
+  [/Bonus point claim: claimable bonus unknown/g, "奖励积分领取：可领取奖励未知"],
+  [/Punchcard child: step incomplete/g, "打卡子任务：子步骤未完成"],
+  [/Streak protection: could not be enabled or verified/g, "连续保护：无法启用或确认"],
+  [/No streak protection days remain/g, "没有剩余的连续保护天数"],
+  [/Search: Bing search failed after (\d+) attempt\(s\)/g, "搜索：Bing 搜索重试 $1 次后仍失败"],
+  [/Claimable bonus points could not be verified; skipping claim request/g, "可领取奖励积分无法确认，跳过领取请求"],
+  [/Microsoft bot-score warning detected/g, "检测到微软机器人评分警告"],
+];
 
 function localizeCounts(text) {
-  return text
+  let out = text
     .replace(COUNT_TAIL, "已完成 $1、未完成 $2、不可用 $3、不适用 $4")
-    .replace(TIMEOUT_TAIL, "超时 $1ms");
+    .replace(TIMEOUT_TAIL, "超时 $1ms")
+    // Playwright 报错堆栈里的固定短语（这些前缀后面跟着多行结构，没法整句匹配）
+    .replace(/The internal HTTP library has thrown an error:/g, "内部 HTTP 库抛出错误：")
+    .replace(/Failed to connect to the server\./g, "无法连接到服务器。")
+    .replace(/Error reading response stream:/g, "读取响应流出错：")
+    .replace(/Reason:/g, "原因：")
+    .replace(/Call log:/g, "调用日志：")
+    .replace(/waiting for locator/g, "等待选择器")
+    .replace(/waiting for fun/g, "等待函数");
+
+  // 摘要行 `原因=` 的值会被内嵌的 ` | ` 切断，定点补最后一轮
+  for (const [re, zh] of REASON_FIXES) out = out.replace(re, zh);
+  return out;
 }
 
 /**
@@ -1035,7 +1063,69 @@ Object.assign(SEGMENTS, {
 PHRASES.unshift(
   ["Failed to find browser context for id {s}", "找不到 id {s} 对应的浏览器上下文"],
   ["Failed to save session: Error: browserContext.cookies: Protocol error (Storage.getCookies): Failed to find browser context for id {s}",
-    "保存会话失败：Error: browserContext.cookies: Protocol error (Storage.getCookies)：找不到 id {s} 对应的浏览器上下文"],
+    "保存会话失败：错误：browserContext.cookies: 协议错误（Storage.getCookies）：找不到 id {s} 对应的浏览器上下文"],
 );
+COMPILED.length = 0;
+for (const [pattern, zh] of PHRASES) COMPILED.push({ ...compile(pattern), zh });
+
+
+// ── 实机日志（2026-11-04 第 5 批）补齐 ────────────────────────────
+PHRASES.unshift(
+  // 运行生命周期 / 入口
+  ["Starting script...", "开始执行脚本…"],
+  ["Script completed successfully.", "脚本执行完成"],
+  ["Script finished", "脚本执行结束"],
+  ["Current process PID: {n}", "当前进程 PID：{n}"],
+  ["Lock acquired successfully (PID: {n})", "成功获取锁（PID {n}）"],
+  ["Lock released (PID: {n})", "锁已释放（PID {n}）"],
+  ["Sleeping for {n} minutes ({n} seconds)", "休眠 {n} 分钟（{n} 秒）"],
+  ["Applied override schedule: {rest}", "已应用调度覆盖：{rest}"],
+
+  // 任务轮次
+  ["Starting flyout task pass", "开始浮出面板任务轮次"],
+  ["Starting /earn task pass for remaining tasks", "开始 /earn 任务轮次（处理剩余任务）"],
+  ["Completed flyout and earn task passes", "浮出面板与 /earn 任务轮次已完成"],
+  ["Started solving \"Daily Set\" items", "开始处理「每日任务」条目"],
+  ["Daily set: {rest}", "每日任务：{rest}"],
+
+  // 网络错误
+  ["Request failed with status code {n}", "请求失败，状态码 {n}"],
+  ["Request timeout ({n} ms) exceeded.", "请求超时（{n} 毫秒）"],
+  ["Request deadline exceeded", "请求超过截止时间"],
+  ["Failed to connect to the server.", "无法连接到服务器"],
+  ["Error reading response stream: {rest}", "读取响应流出错：{rest}"],
+  ["The internal HTTP library has thrown an error: {rest}", "内部 HTTP 库抛出错误：{rest}"],
+  ["Page load failed", "页面加载失败"],
+);
+COMPILED.length = 0;
+for (const [pattern, zh] of PHRASES) COMPILED.push({ ...compile(pattern), zh });
+
+Object.assign(SEGMENTS, {
+  "Completed flyout and earn task passes": "浮出面板与 /earn 任务轮次已完成",
+  flyout: "浮出面板",
+  "Daily set": "每日任务",
+  "Request deadline exceeded": "请求超过截止时间",
+});
+
+Object.assign(FIELDS, {
+  title: "标题",
+  reloading: "重新加载",
+  retryInMs: "重试等待（毫秒）",
+  "Daily set": "每日任务",
+});
+
+Object.assign(VALUES, {
+  "app-api-exceptions": "应用接口异常",
+  "daily-set": "每日任务",
+});
+
+Object.assign(SEGMENTS, {
+  "app-api-exceptions": "应用接口异常",
+});
+
+// PID 统一叫「进程号」，与其它日志一致
+PHRASES.forEach((pair) => {
+  if (typeof pair[1] === "string" && pair[1].includes("PID")) pair[1] = pair[1].replace(/PID：/g, "进程号：").replace(/PID \{n\}/g, "进程 {n}");
+});
 COMPILED.length = 0;
 for (const [pattern, zh] of PHRASES) COMPILED.push({ ...compile(pattern), zh });

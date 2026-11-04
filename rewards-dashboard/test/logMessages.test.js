@@ -196,3 +196,54 @@ test("阅读赚积分 / 搜索配额 / 打卡子任务等新模板", async () =>
     assert.ok(out.includes(want), `${raw} => ${out}`);
   }
 });
+
+// ── 实机第 5 批：任务轮次 / 多行堆栈 / 原因片段 ──────────────────────
+
+test("flyout / earn / Daily Set 任务轮次", async () => {
+  const { translateLogMessage } = await load();
+  const samples = [
+    ["Starting flyout task pass", "开始浮出面板任务轮次"],
+    ["Starting /earn task pass for remaining tasks", "开始 /earn 任务轮次"],
+    ["Completed flyout and earn task passes", "浮出面板与 /earn 任务轮次已完成"],
+    ['Started solving "Daily Set" items | remaining=3', "开始处理「每日任务」条目"],
+    ['Daily set: "北极光的秘密" | completed | points earned: 10', "每日任务："],
+    ["Script completed successfully.", "脚本执行完成"],
+    ["Lock acquired successfully (PID: 4260)", "成功获取锁"],
+    ["Sleeping for 12 minutes (742 seconds)", "休眠 12 分钟"],
+  ];
+  for (const [raw, want] of samples) {
+    const out = translateLogMessage(raw, "zh-CN");
+    assert.ok(out.includes(want), `${raw} => ${out}`);
+  }
+});
+
+test("多行 Playwright 堆栈与小数超时", async () => {
+  const { translateLogMessage } = await load();
+  const out = translateLogMessage(
+    "Using Read to Earn API fallback | browserReads=0 | browserReason=locator.waitFor: Timeout 8333.333333333334ms exceeded.\\nCall log://n  - waiting for locator('cs-responsive-card')",
+    "zh-CN",
+  );
+  assert.ok(out.includes("超时 8333.333333333334ms"), out);
+  assert.ok(out.includes("调用日志："), out);
+  assert.ok(out.includes("等待选择器"), out);
+  // CSS 选择器必须原样保留
+  assert.ok(out.includes("cs-responsive-card"), out);
+});
+
+test("网络错误前缀与摘要原因片段", async () => {
+  const { translateLogMessage } = await load();
+  const net = translateLogMessage(
+    "User data source unavailable | via=node-http | message=Failed to connect to the server.\\nReason: hyper_util::client",
+    "zh-CN",
+  );
+  assert.ok(net.includes("无法连接到服务器。"), net);
+  assert.ok(net.includes("原因："), net);
+
+  // 摘要行里原因被内嵌 ` | ` 截断，最后仍要靠定点替换补上
+  const summary = translateLogMessage(
+    "账户结束 | 原因=Mobile search quota: quota unavailable; Bonus point claim: claimable bonus unknown",
+    "zh-CN",
+  );
+  assert.ok(summary.includes("移动端搜索配额：配额不可用"), summary);
+  assert.ok(summary.includes("奖励积分领取：可领取奖励未知"), summary);
+});
