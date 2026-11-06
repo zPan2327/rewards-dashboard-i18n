@@ -996,6 +996,8 @@ Object.assign(SEGMENTS, {
   "Mobile search quota": "移动端搜索配额",
   "Desktop search quota": "桌面端搜索配额",
   "quota unavailable": "配额不可用",
+  "Not offered in the latest account data; the service did not provide an eligibility reason":
+    "该账号最新数据中未提供此活动（服务端未给出原因）",
   "claimable bonus unknown": "可领取奖励未知",
   "Microsoft bot-score warning detected": "检测到微软机器人评分警告",
   "unsupported promotion type": "不支持的促销类型",

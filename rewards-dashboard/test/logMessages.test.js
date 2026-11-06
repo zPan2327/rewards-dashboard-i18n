@@ -179,6 +179,18 @@ test("中英混排的取值逐段翻译，中文子段原样保留", async () =>
   assert.ok(out.includes("page.waitForURL：超时 42910ms"), out);
 });
 
+test("移动端搜索配额未被提供时，渲染为「不可用（已跳过）」而不是未确认", async () => {
+  const { translateLogMessage } = await load();
+  const out = translateLogMessage(
+    "Mobile search quota | unavailable (skipped) | points earned: 0 | Not offered in the latest account data; the service did not provide an eligibility reason",
+    "zh-CN",
+  );
+  assert.ok(out.includes("移动端搜索配额"), out);
+  assert.ok(out.includes("不可用（已跳过）"), out);
+  assert.ok(!out.includes("completion not confirmed"), out);
+  assert.ok(out.includes("该账号最新数据中未提供此活动"), out);
+});
+
 test("阅读赚积分 / 搜索配额 / 打卡子任务等新模板", async () => {
   const { translateLogMessage } = await load();
   const samples = [
