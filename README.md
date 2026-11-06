@@ -21,6 +21,18 @@
 - **另外独立维护了一处 `lib/parser.js` 的中文日志解析补丁**，让总览页能正确解析中文日志（与本仓库的 i18n 无关）：见 [docs/parser-zh.md](./docs/parser-zh.md)；
 - **除语言相关内容、以及上面那处 `lib/parser.js` 中文日志解析补丁外，没有改动任何功能、接口或数据结构**：API 路径与请求/响应格式、鉴权逻辑、数据处理、Scheduler/Cron、Rewards Script 控制、Docker 部署方式全部保持原样；
 
+### 界面预览
+
+脚本 `5.0.0-ch.4` + 仪表盘 `v2.0.1-i18n.7` 的实机截图（深色模式、简体中文）：
+
+![仪表盘总览：运行状态、积分统计、账号时间轴与热力图](./docs/Screenshot-dash.png)
+
+![实时日志：界面中文、数据层英文，可按级别与关键词过滤](./docs/Screenshot-logs.png)
+
+<p align="center">
+  <img src="./docs/Screenshot-mobile.png" alt="移动端视图" width="300" />
+</p>
+
 ### 配套脚本（推荐）
 
 本仓库是 **[zPan2327/Microsoft-Rewards-Script-Ch](https://github.com/zPan2327/Microsoft-Rewards-Script-Ch)**
@@ -31,8 +43,9 @@
 | [Microsoft-Rewards-Script-Ch](https://github.com/zPan2327/Microsoft-Rewards-Script-Ch) | 自动化脚本：中国热搜查询源、微信推送、中文运行摘要；日志正文保持英文原文 |
 | **rewards-dashboard-i18n**（本仓库） | 仪表盘：界面与日志的中文化（展示层字典，不改数据） |
 
-版本配套关系与安装步骤见
-[脚本侧的发布说明](https://github.com/zPan2327/Microsoft-Rewards-Script-Ch/blob/v5-china/docs/release-notes-v5.0.0-ch.2.md)。
+当前配套版本：脚本 `5.0.0-ch.4` ↔ 仪表盘 `v2.0.1-i18n.7`。安装步骤见
+[脚本侧 README](https://github.com/zPan2327/Microsoft-Rewards-Script-Ch/blob/v5-china/README.md)，
+逐版本变化见[脚本侧 CHANGELOG](https://github.com/zPan2327/Microsoft-Rewards-Script-Ch/blob/v5-china/CHANGELOG.md)。
 
 > English readers: see **[README.en.md](./README.en.md)** — the same guide in English.
 

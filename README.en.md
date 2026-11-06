@@ -48,8 +48,9 @@ This repo is the **official companion dashboard** for
 | [Microsoft-Rewards-Script-Ch](https://github.com/zPan2327/Microsoft-Rewards-Script-Ch) | The automation script: China hot-search queries, WeChat push, Chinese run summaries — log bodies stay in the English original |
 | **rewards-dashboard-i18n** (this repo) | The dashboard: Chinese for the UI **and** the logs (presentation-layer dictionary; data untouched) |
 
-Version pairing and install steps:
-[release notes for `5.0.0-ch.2`](https://github.com/zPan2327/Microsoft-Rewards-Script-Ch/blob/v5-china/docs/release-notes-v5.0.0-ch.2.md).
+Current pairing: script `5.0.0-ch.4` <-> dashboard `v2.0.1-i18n.7`. Install steps:
+[script-side README](https://github.com/zPan2327/Microsoft-Rewards-Script-Ch/blob/v5-china/README.md),
+per-version changes: [script-side CHANGELOG](https://github.com/zPan2327/Microsoft-Rewards-Script-Ch/blob/v5-china/CHANGELOG.md).
 
 > The documents under `docs/` are written in Chinese. This file is the English guide
 > for this fork; the Chinese original is [README.md](./README.md).
@@ -62,7 +63,9 @@ Version pairing and install steps:
 | --- | --- |
 | ![Desktop screenshot](./docs/Screenshot-dash.png) | ![Mobile screenshot](./docs/Screenshot-mobile.png) |
 
-*(Screenshots show the English UI; the Chinese UI uses the same layout with translated labels.)*
+![Live logs](./docs/Screenshot-logs.png)
+
+*(Screenshots come from the default Simplified Chinese UI; the English UI uses the same layout with translated labels - switch languages with the selector in the top-right corner.)*
 
 ---
 
